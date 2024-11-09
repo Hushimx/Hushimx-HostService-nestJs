@@ -1,0 +1,103 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  email String @unique
+  hash  String
+
+  firstName String?
+  lastName  String?
+
+  role Role @default(HOTEL_ADMIN)
+
+  hotels Hotel[] @relation("HotelOwner")
+  bookmarks Bookmark[]
+
+  @@map("users")
+}
+
+model Bookmark {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  title       String
+  description String?
+  link        String
+
+  userId Int
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("bookmarks")
+}
+model Country {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  code      String   @unique           // Country code (e.g., "US" for the United States)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cities    City[]
+
+  @@map("countries")
+}
+
+model City {
+  id         Int      @id @default(autoincrement())
+  name       String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  countryId  Int
+  country    Country @relation(fields: [countryId], references: [id])
+  hotels     Hotel[]
+
+  @@unique([name, countryId])           // Ensures city names are unique within each country
+  @@map("cities")
+}
+model Hotel {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name     String
+  cityId     Int
+
+  ownerId Int
+  city       City     @relation(fields: [cityId], references: [id])
+  owner   User   @relation("HotelOwner", fields: [ownerId], references: [id])
+  rooms   Room[]
+
+  @@map("hotels")
+}
+
+model Room {
+  id        Int      @id @default(autoincrement())
+  uuid      String   @default(uuid()) @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  roomNumber String
+  type       String
+  hotelId    Int
+  hotel      Hotel    @relation(fields: [hotelId], references: [id])
+
+  @@map("rooms")
+}
+enum Role {
+  HOTEL_ADMIN
+  SUPER_ADMIN
+}
