@@ -1,7 +1,9 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { ClientService } from './client.service';
 import { ClientLoginDto } from './dto';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ClientJwt } from 'src/auth/guard/clientJwt.guard';
+import { Request } from 'express';
 
 @ApiTags('Client') // Grouping all Client endpoints under "Client"
 @Controller('client')
@@ -23,5 +25,10 @@ export class ClientController {
   })
   async login(@Body() dto: ClientLoginDto) {
     return this.clientService.loginWithRoomUUID(dto);
+  }
+
+  @Get("/test")
+  test(@Req() req: Request) {
+    return req.user;
   }
 }

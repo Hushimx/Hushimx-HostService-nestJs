@@ -1,35 +1,55 @@
-# compiled output
-/dist
-/node_modules
+# Ignore Node modules
+node_modules/
 
-# Logs
-logs
+# Ignore build output directories
+dist/
+build/
+
+# Ignore environment files
+.env
+.env.*.local
+
+# Ignore logs
 *.log
+logs/
 npm-debug.log*
-pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-lerna-debug.log*
+pnpm-debug.log*
 
-# OS
+# Ignore temporary and system files
 .DS_Store
+Thumbs.db
 
-# Tests
-/coverage
-/.nyc_output
-
-# IDEs and editors
-/.idea
-.project
-.classpath
-.c9/
-*.launch
-.settings/
+# Ignore IDE and editor configuration files
+.idea/
+.vscode/
 *.sublime-workspace
+*.sublime-project
 
-# IDE - VSCode
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
+# Ignore test coverage output
+coverage/
+
+# Ignore compiled TypeScript files (if using `tsc` for build)
+*.tsbuildinfo
+
+# Ignore Prisma (if you're using Prisma as ORM)
+prisma/migrations/
+prisma/dev.db
+
+# Ignore Swagger auto-generated files (if you generate Swagger documentation)
+swagger.json
+swagger.yaml
+
+# Ignore Render-specific files
+.render/
+
+# Ignore Docker files if you use Docker for deployment
+docker-compose.override.yml
+
+# Ignore any custom directories or sensitive files
+your-custom-config.json
+
+# Ignore database dumps or SQL files (if you store backups locally)
+*.sql
+*.dump

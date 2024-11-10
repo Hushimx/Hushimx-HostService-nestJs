@@ -10,7 +10,12 @@ async function bootstrap() {
       whitelist: true,
     }),
   );
+  app.enableCors({
+    origin: 'http://127.0.0.1:3000',
+    methods: 'GET,POST,PUT,DELETE,OPTIONS',
+    allowedHeaders: 'Content-Type, Authorization, X-XSRF-TOKEN',
 
+  })
     // Swagger configuration
     const config = new DocumentBuilder()
     .setTitle('HostService API Documentation')
