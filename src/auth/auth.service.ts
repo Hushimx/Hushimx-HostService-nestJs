@@ -1,76 +1,61 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
 import { AuthDto } from './dto';
-import * as argon from 'argon2';
-import { Prisma } from '@prisma/client';
-import { JwtService } from '@nestjs/jwt';
+import { Response } from 'express';
 import { ConfigService } from '@nestjs/config';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { JwtService } from '@nestjs/jwt';
+import * as argon from 'argon2';
+import { Role } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private prisma: PrismaService,
-    private jwt: JwtService,
-    private config: ConfigService,
+    private readonly prisma: PrismaService,
+    private readonly jwt: JwtService,
+    private readonly config: ConfigService,
   ) {}
 
-  async signup(dto: AuthDto) {
-    // generate the password hash
-    const hash = await argon.hash(dto.password);
-    // save the new user in the db
-    try {
-      const user = await this.prisma.user.create({
-        data: {
-          email: dto.email,
-          hash,
-        },
-      });
-
-      return this.signToken(user.id, user.email);
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === 'P2002') {
-          throw new ForbiddenException('Credentials taken');
-        }
-      }
-      throw error;
-    }
-  }
-
-  async signin(dto: AuthDto) {
-    // find the user by email
+  async signin(dto: AuthDto, response: Response): Promise<{ message: string }> {
     const user = await this.prisma.user.findUnique({
-      where: {
-        email: dto.email,
-      },
+      where: { email: dto.email.toLowerCase() },
     });
-    // if user does not exist throw exception
-    if (!user) throw new ForbiddenException('Credentials incorrect');
 
-    // compare password
-    const pwMatches = await argon.verify(user.hash, dto.password);
-    // if password incorrect throw exception
-    if (!pwMatches) throw new ForbiddenException('Credentials incorrect');
-    return this.signToken(user.id, user.email);
+    if (!user) throw new ForbiddenException('Invalid email or password.');
+
+    const isPasswordValid = await argon.verify(user.hash, dto.password);
+    if (!isPasswordValid) throw new ForbiddenException('Invalid email or password.');
+
+    const token = this.generateJwt(user.id, user.email, user.role);
+    this.setCookie(response, token);
+
+    return { message: 'Signin successful' };
   }
 
-  async signToken(
-    userId: number,
-    email: string,
-  ): Promise<{ access_token: string }> {
-    const payload = {
-      sub: userId,
-      email,
-    };
-    const secret = this.config.get('JWT_SECRET');
-
-    const token = await this.jwt.signAsync(payload, {
-      expiresIn: '15m',
-      secret: secret,
+  async logout(response: Response): Promise<{ message: string }> {
+    response.clearCookie('Authentication', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
     });
 
-    return {
-      access_token: token,
-    };
+    return { message: 'Logout successful' };
+  }
+
+  private generateJwt(userId: number, email: string,role: Role): string {
+    const payload = { sub: userId, email, role };
+    const secret = this.config.get<string>('JWT_SECRET');
+
+    return this.jwt.sign(payload, {
+      secret,
+      expiresIn: '1h',
+    });
+  }
+
+  private setCookie(response: Response, token: string): void {
+    response.cookie('Authentication', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 3600000,
+      sameSite: 'strict',
+    });
   }
 }

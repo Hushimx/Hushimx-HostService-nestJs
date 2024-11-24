@@ -11,11 +11,11 @@ import {
 } from '@nestjs/common';
 import { HostService } from './host.service';
 import { GetUser } from '../auth/decorator/get-user.decorator';
-import { JwtGuard } from '../auth/guard'; // Use the appropriate guard for your setup
+import { AdminJwt} from '../auth/guard'; // Use the appropriate guard for your setup
 import { UUID } from 'crypto';
 
 @Controller('host')
-@UseGuards(JwtGuard) // Ensure user is authenticated
+@UseGuards(AdminJwt) // Ensure user is authenticated
 export class HostController {
   constructor(private readonly HostService: HostService) {}
 

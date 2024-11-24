@@ -1,34 +1,55 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+// client.controller.ts
+import { Controller, Post, Body, Res, Get, Req, UseGuards, UnauthorizedException } from '@nestjs/common';
 import { ClientService } from './client.service';
 import { ClientLoginDto } from './dto';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Response, Request } from 'express';
 import { ClientJwt } from 'src/auth/guard/clientJwt.guard';
-import { Request } from 'express';
+import { GetUser } from 'src/auth/decorator';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody, ApiUnauthorizedResponse } from '@nestjs/swagger';
 
-@ApiTags('Client') // Grouping all Client endpoints under "Client"
+@ApiTags('Client Authentication') // Groups endpoints under "Client Authentication"
 @Controller('client')
 export class ClientController {
-  constructor(private clientService: ClientService) {}
+  constructor(private readonly clientService: ClientService) {}
 
-  @Post('/login')
-  @ApiOperation({ summary: 'Client login using UUID' }) // Brief description of the endpoint
-  @ApiResponse({
-    status: 201,
-    description: 'Client login successful, returns an access token',
-    schema: {
-      example: { access_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' },
-    },
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Room not found with the provided UUID',
-  })
-  async login(@Body() dto: ClientLoginDto) {
-    return this.clientService.loginWithRoomUUID(dto);
+  @UseGuards(ClientJwt)
+  @ApiBearerAuth() // Indicates that the endpoint requires authentication
+  @Get('/test')
+  @ApiOperation({ summary: 'Test authentication' })
+  @ApiResponse({ status: 200, description: 'Returns the authenticated user.' })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  test(@Req() req: Request, @GetUser() user) {
+    // Select specific properties from req to avoid circular references
+    return user;
   }
 
-  @Get("/test")
-  test(@Req() req: Request) {
-    return req.user;
+  @Post('login')
+  @ApiOperation({ summary: 'Login with Room UUID' })
+  @ApiBody({ type: ClientLoginDto })
+  @ApiResponse({ status: 201, description: 'Login successful.' })
+  @ApiUnauthorizedResponse({ description: 'Access denied: invalid or missing credentials' })
+  async loginWithRoomUUID(
+    @Body() dto: ClientLoginDto,
+    @Res() response: Response,
+    @Req() req: Request,
+  ) {
+    // Check if the Authentication cookie already exists
+    if (req.cookies['Authentication']) {
+      throw new UnauthorizedException('You are already logged in.');
+    }
+
+    // Proceed with login if the user is not logged in
+    const result = await this.clientService.loginWithRoomUUID(dto, response);
+    response.json(result);
+  }
+
+  @UseGuards(ClientJwt)
+  @ApiBearerAuth()
+  @Post('logout')
+  @ApiOperation({ summary: 'Logout the client' })
+  @ApiResponse({ status: 200, description: 'Logout successful.' })
+  async logout(@Res() response: Response) {
+    const result = await this.clientService.logout(response);
+    response.json(result); // Explicitly send JSON response
   }
 }

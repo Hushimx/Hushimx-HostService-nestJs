@@ -8,11 +8,7 @@ export class HostService {
 
   async getRoomsByUser(userId: number) {
     return this.prisma.room.findMany({
-      where: {
-        hotel: {
-          ownerId: userId,
-        },
-      },
+
     });
   }
 
@@ -21,7 +17,6 @@ export class HostService {
     const hotel = await this.prisma.hotel.findFirst({
       where: {
         id: hotelId,
-        ownerId: userId,
       },
     });
 
@@ -42,9 +37,7 @@ export class HostService {
     const room = await this.prisma.room.findFirst({
       where: {
         id: roomId,
-        hotel: {
-          ownerId: userId,
-        },
+
       },
     });
 
