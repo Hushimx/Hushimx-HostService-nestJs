@@ -44,7 +44,7 @@ model City {
   @@map("cities")
   CityServiceVendor CityServiceVendor[]
   ServiceOrder ServiceOrder[]
-  Events Events[]
+  Events Event[]
 }
 
 model Admin {
@@ -92,12 +92,13 @@ model Bookmark {
   @@map("bookmarks")
 }
 
-model Events {
+model Event {
   id         Int      @id @default(autoincrement())
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
   title String
+  
   description String?
   description_ar String?
 

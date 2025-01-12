@@ -1,40 +1,49 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query, ValidationPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, UseGuards } from '@nestjs/common';
 import { ClientsService } from './clients.service';
-import { CreateClientDto } from './dto/create-client.dto';
-import { UpdateClientDto } from './dto/update-client.dto';
-import { AdminJwt } from 'src/auth/guard';
-import { QueryClientDto } from './dto/query-client.dto';
 import { GetUser } from 'src/auth/decorator';
-import { Admin } from 'types/admin';
-
+import { CreateClientDto, UpdateClientDto, QueryClientDto } from './dto/clients.dto';
+import { ApiOperation } from '@nestjs/swagger';
+import { AdminJwt } from 'src/auth/guard';
 
 @UseGuards(AdminJwt)
-@Controller('clients')
+@Controller('admin/clients')
 export class ClientsController {
   constructor(private readonly clientsService: ClientsService) {}
 
   @Post()
-  create(@Body() createClientDto: CreateClientDto) {
-    return this.clientsService.create(createClientDto);
+  @ApiOperation({ summary: 'Create a new client' })
+  create(@Body() createClientDto: CreateClientDto, @GetUser() user) {
+    return this.clientsService.create(createClientDto, user.role, user.countryId);
   }
 
+  @ApiOperation({ 
+    summary: 'Retrieve a paginated, filterable list of clients.',
+    description: `By default, users only see clients in their assigned country. 
+                  However, if the user queries for clients and 
+                  they have the required permissions, 
+                  they will see clients from the specified country. Otherwise, 
+                  they remain restricted to their assigned country.`
+  })
   @Get()
-  findAll(@Query(new ValidationPipe({ transform: true, whitelist: true })) query: QueryClientDto,@GetUser() user : Admin) {
-    return 1;
+  findAll(@GetUser() user, @Body() findDto: QueryClientDto) {
+    return this.clientsService.findAll(user.role, user.countryId, findDto);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.clientsService.findOne(+id);
+  @ApiOperation({ summary: 'Retrieve details of a specific client' })
+  findOne(@Param('id', ParseIntPipe) id: number, @GetUser() user) {
+    return this.clientsService.findOne(id, user.role, user.countryId);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateClientDto: UpdateClientDto) {
-    return this.clientsService.update(+id, updateClientDto);
+  @ApiOperation({ summary: 'Update an existing client' })
+  update(@Param('id', ParseIntPipe) id: number, @Body() updateClientDto: UpdateClientDto, @GetUser() user) {
+    return this.clientsService.update(id, updateClientDto, user.role, user.countryId);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.clientsService.remove(+id);
+  @ApiOperation({ summary: 'Delete an existing client' })
+  remove(@Param('id', ParseIntPipe) id: number, @GetUser() user) {
+    return this.clientsService.remove(id, user.role, user.countryId);
   }
 }

@@ -16,7 +16,7 @@ export class CitiesController {
   constructor(private readonly citiesService: CitiesService) {}
   
     @Get()
-    @ApiOperation({ summary: 'Get all vendors for a service' })
+    @ApiOperation({ summary: 'Get all cities registed for a service' })
     @ApiResponse({ status: 200, description: 'List of City Services' })
     async findAll(@Query(new ValidationPipe({ transform: true, whitelist: true, })) query :  QueryCityServiceDto,@GetUser() user) {
       return this.citiesService.findAll(query, user.role,user.countryId);

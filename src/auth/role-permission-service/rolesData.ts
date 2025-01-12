@@ -19,6 +19,12 @@ export enum Permission {
     EDIT_PRODUCTS = 'edit:products',
     DELETE_PRODUCTS = 'delete:products',
     ACCESS_ALL_ORDERS = 'accessAll:orders',
+    //CITIES
+    ACCESS_ALL_CITIES = 'accessAll:cities',
+    VIEW_CITIES = 'view:cities',
+    CREATE_CITIES = 'create:cities',
+    EDIT_CITIES = 'edit:cities',
+    DELETE_CITIES = 'delete:cities',
     //orders
     VIEW_ORDERS = 'view:orders',    
     CREATE_ORDERS = 'create:orders',
@@ -54,10 +60,14 @@ export enum Permission {
     MANAGE_SECTIONS = 'managae:sections',
     DELETE_SECTIONS = 'delete:sections',
     //Clients 
-    
+    ACCESS_ALL_CLIENTS = 'accessAll:clients',
     VIEW_CLIENTS = 'view:clients',
     MANAGE_CLIENTS = 'managae:clients',
     DELETE_CLIENTS = 'delete:clients',
+    //events
+    VIEW_EVENTS = 'view:events',
+    MANAGE_EVENTS = 'managae:events',
+    DELETE_EVENTS = 'delete:events',
 
       }
   
@@ -123,6 +133,17 @@ export enum Permission {
       Permission.VIEW_CLIENTS,
       Permission.MANAGE_CLIENTS,
       Permission.DELETE_CLIENTS,
+      //Events
+      Permission.VIEW_EVENTS,
+      Permission.MANAGE_EVENTS,
+      Permission.DELETE_EVENTS,
+      //Cities
+      Permission.ACCESS_ALL_CITIES,
+      Permission.VIEW_CITIES,
+      Permission.CREATE_CITIES,
+      Permission.EDIT_CITIES,
+      Permission.DELETE_CITIES,
+
       
   
     ],
@@ -164,6 +185,16 @@ export enum Permission {
     Permission.VIEW_CLIENTS,
     Permission.MANAGE_CLIENTS,
     Permission.DELETE_CLIENTS,
+    //events
+    Permission.VIEW_EVENTS,
+    Permission.MANAGE_EVENTS,
+    Permission.DELETE_EVENTS,
+    //Cities
+    Permission.VIEW_CITIES,
+    Permission.CREATE_CITIES,
+    Permission.EDIT_CITIES,
+    Permission.DELETE_CITIES
+
 
 
 

@@ -1,48 +1,119 @@
-import { Injectable } from '@nestjs/common';
-import { CreateClientDto } from './dto/create-client.dto';
-import { UpdateClientDto } from './dto/update-client.dto';
-import { QueryClientDto } from './dto/query-client.dto';
-import { buildFilters } from 'src/utils/filters';
-import { Permission, Role } from 'src/auth/role-permission-service/rolesData';
-import {  paginateAndSort } from 'src/utils/pagination';
-import { Client } from 'whatsapp-web.js';
-import { PrismaService } from 'src/prisma/prisma.service';
+// clients.service.ts
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { RolePermissionService } from 'src/auth/role-permission-service/role-permission-service.service';
+import { Permission, Role } from 'src/auth/role-permission-service/rolesData';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { paginateAndSort } from 'src/utils/pagination';
+import { CreateClientDto, UpdateClientDto,  QueryClientDto } from './dto/clients.dto';
 
 @Injectable()
 export class ClientsService {
-  constructor(private readonly prisma: PrismaService,private readonly rolePermissionService: RolePermissionService) {}
-  create(createClientDto: CreateClientDto) {
-    return 'This action adds a new client';
-  }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly rolePermissionService: RolePermissionService,
+  ) {}
 
-  findAll(query: QueryClientDto, userRole: Role, userCountryId: number) {
-    this.rolePermissionService.enforcePermission(userRole, Permission.VIEW_CLIENTS);
-    const filters = buildFilters({ userRole, userCountryId, dto: query,allowedFields: ['phoneNo',"name"],
+  async create(createClientDto: CreateClientDto, userRole: Role, userCountryId: number) {
+    this.rolePermissionService.enforcePermission(userRole, Permission.MANAGE_CLIENTS);
+
+    const country = await this.prisma.country.findUnique({
+      where: { id: createClientDto.countryId },
     });
 
-    if(query.clientId) filters.clientId = query.clientId
+    if (!country) {
+      throw new NotFoundException('Country not found.');
+    }
+
+    return this.prisma.client.create({
+      data: {
+        name: createClientDto.name,
+        phoneNo: createClientDto.phoneNo,
+        countryCode: country.code,
+      },
+    });
+  }
+
+  async findAll(userRole: Role, userCountryId: number, query: QueryClientDto) {
+    this.rolePermissionService.enforcePermission(userRole, Permission.VIEW_CLIENTS);
+
+    const filters: any = {};
+
+    if (!this.rolePermissionService.hasPermission(userRole, Permission.ACCESS_ALL_CLIENTS)) {
+      filters.countryCode = (await this.prisma.country.findUnique({ where: { id: userCountryId } })).code;
+    }
+
+    if (query.name) {
+      filters.name = { contains: query.name, mode: 'insensitive' };
+    }
+
+    const allowedSortFields = ['name', 'createdAt', 'updatedAt'];
 
     return paginateAndSort(
       this.prisma.client,
-      { where: filters },
       {
-        page: query.page || 1,
-        limit: query.limit || 10,
+        where: filters,
+      },
+      {
+        page: query.page,
+        limit: query.limit,
         sortField: query.sortField,
         sortOrder: query.sortOrder,
       },
-    );  }
-
-  findOne(id: number) {
-    return `This action returns a #${id} client`;
+      allowedSortFields,
+    );
   }
 
-  update(id: number, updateClientDto: UpdateClientDto) {
-    return `This action updates a #${id} client`;
+  async findOne(id: number, userRole: Role, userCountryId: number) {
+    this.rolePermissionService.enforcePermission(userRole, Permission.VIEW_CLIENTS);
+
+    const client = await this.prisma.client.findUnique({
+      where: { id },
+      include: { country: true },
+    });
+
+    if (!client || (!this.rolePermissionService.hasPermission(userRole, Permission.ACCESS_ALL_CLIENTS) && client.country.code !== (await this.prisma.country.findUnique({ where: { id: userCountryId } })).code)) {
+      throw new NotFoundException('Client not found or access denied.');
+    }
+
+    return client;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} client`;
+  async update(id: number, updateClientDto: UpdateClientDto, userRole: Role, userCountryId: number) {
+    this.rolePermissionService.enforcePermission(userRole, Permission.MANAGE_CLIENTS);
+
+    const client = await this.prisma.client.findUnique({
+      where: { id },
+    });
+
+    if (!client || (!this.rolePermissionService.hasPermission(userRole, Permission.ACCESS_ALL_CLIENTS) && client.countryCode !== (await this.prisma.country.findUnique({ where: { id: userCountryId } })).code)) {
+      throw new NotFoundException('Client not found or access denied.');
+    }
+
+    return this.prisma.client.update({
+      where: { id },
+      data: {
+        name: updateClientDto.name,
+        phoneNo: updateClientDto.phoneNo,
+        countryCode: updateClientDto.countryId
+          ? (await this.prisma.country.findUnique({ where: { id: updateClientDto.countryId } })).code
+          : client.countryCode,
+      },
+    });
+  }
+
+  async remove(id: number, userRole: Role, userCountryId: number) {
+    this.rolePermissionService.enforcePermission(userRole, Permission.DELETE_CLIENTS);
+
+    const client = await this.prisma.client.findUnique({
+      where: { id },
+    });
+
+    if (!client || (!this.rolePermissionService.hasPermission(userRole, Permission.ACCESS_ALL_CLIENTS) && client.countryCode !== (await this.prisma.country.findUnique({ where: { id: userCountryId } })).code)) {
+      throw new NotFoundException('Client not found or access denied.');
+    }
+
+    return this.prisma.client.delete({
+      where: { id },
+    });
   }
 }
