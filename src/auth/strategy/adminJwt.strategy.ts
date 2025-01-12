@@ -13,12 +13,12 @@ export class AdminJwtStrategy extends PassportStrategy(Strategy, 'adminjwt') {
     private prisma: PrismaService,
   ) {
     super({
-      // jwtFromRequest: ExtractJwt.fromExtractors([
-      //   (req: Request) => {
-      //     return req?.cookies?.Authentication;
-      //   },
-      // ]),
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        (req: Request) => {
+          return req?.cookies?.Authentication;
+        },
+      ]),
+      // jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       igrnoreExpiration: true,
       secretOrKey: config.get('JWT_SECRET'),
     });
