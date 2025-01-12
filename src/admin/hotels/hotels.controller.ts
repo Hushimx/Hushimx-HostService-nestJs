@@ -1,45 +1,48 @@
-// src/hotels/hotels.controller.ts
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Query, Param, Body, UseGuards, ParseIntPipe, ValidationPipe } from '@nestjs/common';
 import { HotelsService } from './hotels.service';
 import { CreateHotelDto, EditHotelDto, QueryHotelsDto } from '../dto/Hotels.dto';
 import { GetUser } from 'src/auth/decorator';
-import { ClientJwt } from 'src/auth/guard/clientJwt.guard';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { AdminJwt } from 'src/auth/guard';
+import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 
-@UseGuards(AdminJwt)
 @ApiTags('Hotels')
-@Controller('hotels')
+@Controller('admin/hotels')
+@UseGuards(AdminJwt)
+@ApiBearerAuth()
 export class HotelsController {
   constructor(private readonly hotelsService: HotelsService) {}
 
-  @ApiBearerAuth()
   @Get()
   @ApiOperation({ summary: 'Retrieve a list of hotels with filtering, sorting, and pagination' })
-  async getHotels(@Query() query: QueryHotelsDto) {
-    return this.hotelsService.getHotels(query, "super_admin", 1);
+  async getHotels(@Query(new ValidationPipe({ transform: true, whitelist: true })) query: QueryHotelsDto, @GetUser() user) {
+    return this.hotelsService.getHotels(query, user.role, user.countryId);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Retrieve details of a specific hotel' })
+  async getHotel(@Param('id', ParseIntPipe) id: number, @GetUser() user) {
+    return this.hotelsService.getHotel(id, user.role, user.countryId);
   }
 
   @Post()
   @ApiOperation({ summary: 'Create a new hotel' })
   async createHotel(@Body() dto: CreateHotelDto, @GetUser() user) {
-    return this.hotelsService.createHotel(dto, "regional_admin", 1);
+    return this.hotelsService.createHotel(dto, user.role, user.countryId);
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Edit an existing hotel' })
   async editHotel(
-    @Param('id') id: number,
+    @Param('id', ParseIntPipe) id: number,
     @Body() dto: EditHotelDto,
     @GetUser() user,
   ) {
-    return this.hotelsService.editHotel(id, dto, "REGIONAL_ADMIN", 1);
+    return this.hotelsService.editHotel(id, dto, user.role, user.countryId);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete an existing hotel' })
-  async deleteHotel(@Param('id') id: number, @GetUser() user) {
-    return this.hotelsService.deleteHotel(id, user.role, user.country);
+  async deleteHotel(@Param('id', ParseIntPipe) id: number, @GetUser() user) {
+    return this.hotelsService.deleteHotel(id, user.role, user.countryId);
   }
-
 }

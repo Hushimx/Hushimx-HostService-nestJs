@@ -2,9 +2,10 @@ import { IsNotEmpty, IsString, IsInt,Min, IsUUID,IsEnum, IsOptional } from 'clas
 import { Type } from 'class-transformer';
 
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { PaginationAndSortingDto } from './pagination.dto';
 
 
-export class QueryRoomsDto {
+export class QueryRoomsDto extends PaginationAndSortingDto {
   @ApiPropertyOptional({ description: 'Room number to filter by', example: '101' })
   @IsOptional()
   @IsString()
@@ -15,28 +16,6 @@ export class QueryRoomsDto {
   @IsString()
   type?: string;
 
-  @ApiPropertyOptional({ description: 'Number of items per page', example: 10 })
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  @Type(() => Number)
-  limit?: number = 10;
-
-  @ApiPropertyOptional({ description: 'Number of items to skip', example: 0 })
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  @Type(() => Number)
-  offset?: number = 0;
-
-  @ApiPropertyOptional({ description: 'Field to sort by', example: 'createdAt' })
-  @IsOptional()
-  @IsString()
-  sortField?: string;
-
-  @ApiPropertyOptional({ description: 'Sort order (asc or desc)', example: 'asc' })
-  @IsOptional()
-  sortOrder?: 'asc' | 'desc';
 }
 
 
@@ -56,10 +35,12 @@ export class CreateRoomDto {
 
 export class EditRoomDto {
   @ApiProperty({ description: 'Room number', example: '101', required: false })
+  @IsOptional()
   @IsString()
   roomNumber?: string;
 
   @ApiProperty({ description: 'Room type', example: 'Deluxe', required: false })
+  @IsOptional()
   @IsString()
   type?: string;
 }

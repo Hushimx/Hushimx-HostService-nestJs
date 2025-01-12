@@ -1,66 +1,56 @@
-// src/hotels/hotels.service.ts
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateHotelDto, EditHotelDto, QueryHotelsDto } from '../dto/Hotels.dto';
-import { buildPagination, paginateAndSort } from 'src/utils/pagination';
+import { paginateAndSort } from 'src/utils/pagination';
+import { Role,Permission} from 'src/auth/role-permission-service/rolesData';
+import { RolePermissionService } from 'src/auth/role-permission-service/role-permission-service.service';
 
 @Injectable()
 export class HotelsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly rolePermissionService: RolePermissionService,
+  ) {}
 
-  async getHotels(query: QueryHotelsDto, userRole: string, userCountryId?: number) {
-    // Initialize filters
+  /**
+   * Retrieve hotels with filters, sorting, and pagination
+   */
+  async getHotels(query: QueryHotelsDto, userRole: Role, userCountryId?: number) {
+    // Enforce permission to view hotels
+    this.rolePermissionService.enforcePermission(userRole, Permission.VIEW_HOTELS);
+
     const filters: any = {};
-  
-    // Common filters
-    if (query.name) {
-      filters.name = { contains: query.name, mode: 'insensitive' }; // Case-insensitive search
-    }
-  
-    // Regional Admin (Default Case)
-    if (userRole !== 'super_admin') {
-      if (!userCountryId) {
-        throw new ForbiddenException('Country ID is required for REGIONAL_ADMIN access.');
-      }
-  
-      filters.city = {
-        countryId: userCountryId, // Restrict to assigned country
-      };
-  
-      if (query.city) {
-        filters.city = {
-          ...filters.city,
-          name: { contains: query.city, mode: 'insensitive' }, // Filter by city name
-        };
-      }
-    }
-  
-    // Super Admin (Special Case)
-    if (userRole === 'super_admin') {
-      if (query.city) {
-        filters.city = { name: { contains: query.city, mode: 'insensitive' } }; // Match city name
-      }
+
+    // Default filter: Restrict access to user's country
+    filters.city = { countryId: userCountryId };
+
+    // Special case: Unrestricted access for ACCESS_ALL_HOTELS
+    if (this.rolePermissionService.hasPermission(userRole, Permission.ACCESS_ALL_HOTELS)) {
+      delete filters.city;
       if (query.country) {
         filters.city = {
           ...filters.city,
-          country: { name: { contains: query.country, mode: 'insensitive' } }, // Match country name
+          country: { id: query.country },
         };
       }
+      if (query.city) {
+        filters.cityId = query.city;
+      }
     }
-  
-    // Allowed sorting fields
+
+    // Common filters
+    if (query.name) {
+      console.log(query.name,3333)
+      filters.name = { contains: query.name, mode: 'insensitive' };
+    }
+
     const allowedSortFields = ['name', 'createdAt', 'updatedAt'];
-  
-    // Use paginateAndSort for pagination and sorting
-    const paginatedResult = await paginateAndSort(
-      this.prisma.hotel, // Prisma model
+
+    return paginateAndSort(
+      this.prisma.hotel,
       {
         where: filters,
-        include: {
-          city: {
-            include: { country: true }, // Include city and country details
-          },
-        },
+        include: { city: true },
       },
       {
         page: query.page,
@@ -68,96 +58,117 @@ export class HotelsService {
         sortField: query.sortField,
         sortOrder: query.sortOrder,
       },
-      allowedSortFields
+      allowedSortFields,
     );
-  
-    return paginatedResult;
   }
-      
-  async createHotel(data: CreateHotelDto, userRole: string, userCountry?: Number) {
-    if (userRole === 'REGIONAL_ADMIN') {
-      // Validate city belongs to the admin's country
-      const city = await this.prisma.city.findUnique({
-        where: { id: data.cityId },
-        include: { country: true },
-      });
 
-      if (!city) {
-        throw new NotFoundException('City not found.');
-      }
+ async getHotel(hotelId: number, userRole: Role, userCountryId: number) {
+    // Enforce permission to view hotels
+    this.rolePermissionService.enforcePermission(userRole, Permission.VIEW_HOTELS);
+    const hotel = await this.prisma.hotel.findUnique({ 
+      where: { id: hotelId },
+      include: { city: { select: { name:true,countryId: true } } },
+    });
+    console.log(hotel)
+    if (!hotel) {
+      throw new NotFoundException('Hotel not found.');
+    }
+    this.rolePermissionService.enforceManageInCountry(
+      userRole,
+      Permission.CREATE_HOTELS,
+      userCountryId,
+      hotel.city.countryId,
+    );
+    return hotel
 
-      if (city.country.id !== userCountry) {
-        throw new ForbiddenException('You can only create hotels in your assigned country.');
-      }
+  }
+
+  /**
+   * Create a new hotel
+   */
+  async createHotel(data: CreateHotelDto, userRole: Role, userCountryId?: number) {
+    // Enforce permission to create hotels
+    this.rolePermissionService.enforcePermission(userRole, Permission.CREATE_HOTELS);
+
+    // Validate the city and enforce country-specific management
+    const city = await this.prisma.city.findUnique({
+      where: { id: data.cityId },
+      include: { country: true },
+    });
+
+    if (!city) {
+      throw new NotFoundException('City not found.');
     }
 
-    // Create the hotel
+    this.rolePermissionService.enforceManageInCountry(
+      userRole,
+      Permission.CREATE_HOTELS,
+      userCountryId,
+      city.country.id,
+    );
+
     return this.prisma.hotel.create({
-      data: {
-        name: data.name,
-        cityId: data.cityId,
-      },
+      data: { name: data.name, cityId: data.cityId,address: data.address, locationUrl: data.locationUrl },
     });
   }
 
+  /**
+   * Edit an existing hotel
+   */
   async editHotel(
     hotelId: number,
     data: EditHotelDto,
-    userRole: string,
-    userCountry?: number,
+    userRole: Role,
+    userCountryId?: number,
   ) {
-    // Fetch the hotel to validate
-    const existingHotel = await this.prisma.hotel.findUnique({
+    // Enforce permission to edit hotels
+    this.rolePermissionService.enforcePermission(userRole, Permission.EDIT_HOTELS);
+
+    const hotel = await this.prisma.hotel.findUnique({
       where: { id: hotelId },
       include: { city: { include: { country: true } } },
     });
 
-    if (!existingHotel) {
+    if (!hotel) {
       throw new NotFoundException('Hotel not found.');
     }
 
-    if (userRole === 'REGIONAL_ADMIN') {
-      if (existingHotel.city.country.id !== userCountry) {
-        throw new ForbiddenException('You can only edit hotels in your assigned country.');
-      }
+    this.rolePermissionService.enforceManageInCountry(
+      userRole,
+      Permission.EDIT_HOTELS,
+      userCountryId,
+      hotel.city.country.id,
+    );
 
-      if (data.cityId) {
-        const newCity = await this.prisma.city.findUnique({
-          where: { id: data.cityId },
-          include: { country: true },
-        });
-
-        if (!newCity || newCity.country.id !== userCountry) {
-          throw new ForbiddenException('You can only assign hotels to cities in your country.');
-        }
-      }
-    }
-
-    // Update the hotel
     return this.prisma.hotel.update({
       where: { id: hotelId },
       data,
     });
   }
 
-  async deleteHotel(hotelId: number, userRole: string, userCountry?: number) {
-    // Fetch the hotel to validate
-    const existingHotel = await this.prisma.hotel.findUnique({
+  /**
+   * Delete an existing hotel
+   */
+  async deleteHotel(hotelId: number, userRole: Role, userCountryId?: number) {
+    // Enforce permission to delete hotels
+    this.rolePermissionService.enforcePermission(userRole, Permission.DELETE_HOTELS);
+
+    const hotel = await this.prisma.hotel.findUnique({
       where: { id: hotelId },
       include: { city: { include: { country: true } } },
     });
 
-    if (!existingHotel) {
+    if (!hotel) {
       throw new NotFoundException('Hotel not found.');
     }
 
-    if (userRole === 'REGIONAL_ADMIN') {
-      if (existingHotel.city.country.id !== userCountry) {
-        throw new ForbiddenException('You can only delete hotels in your assigned country.');
-      }
-    }
+    this.rolePermissionService.enforceManageInCountry(
+      userRole,
+      Permission.DELETE_HOTELS,
+      userCountryId,
+      hotel.city.country.id,
+    );
 
-    // Delete the hotel
     return this.prisma.hotel.delete({
       where: { id: hotelId },
     });

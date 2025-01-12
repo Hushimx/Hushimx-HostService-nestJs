@@ -1,26 +1,32 @@
-import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { Injectable, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { QueryRoomsDto, CreateRoomDto, EditRoomDto } from 'src/admin/dto/rooms.dto';
 import { paginateAndSort, PaginatedResult } from 'src/utils/pagination';
-import { buildSorting } from 'src/utils/sorting';
-import { Prisma } from '@prisma/client';
+import { RolePermissionService } from 'src/auth/role-permission-service/role-permission-service.service';
+import { Permission, Role } from 'src/auth/role-permission-service/rolesData';
 
 @Injectable()
 export class RoomsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly rolePermissionService: RolePermissionService,
+  ) {}
 
   async getRooms(
-    query: any, // Query DTO
-    userRole: string,
-    userCountryId?: number,
-    hotelId?: number,
+    hotelId: number,
+    query: QueryRoomsDto,
+    userRole: Role,
+    userCountryId: number,
   ): Promise<PaginatedResult<any>> {
     if (!hotelId) {
       throw new ForbiddenException('Hotel ID must be specified.');
     }
 
+    // Enforce view permission
+    this.rolePermissionService.enforcePermission(userRole, Permission.VIEW_HOTELS);
+
     // Filters
-    const filters: Prisma.RoomWhereInput = { hotelId };
+    const filters = { hotelId } as any;
     if (query.roomNumber) {
       filters.roomNumber = { contains: query.roomNumber, mode: 'insensitive' };
     }
@@ -28,88 +34,116 @@ export class RoomsService {
       filters.type = { contains: query.type, mode: 'insensitive' };
     }
 
-    // Role-based restrictions
-    if (userRole !== 'SUPER_ADMIN') {
-      if (!userCountryId) {
-        throw new ForbiddenException('Country ID is required for REGIONAL_ADMIN access.');
-      }
-
-      const hotel = await this.prisma.hotel.findUnique({
-        where: { id: hotelId },
-        select: { city: { select: { countryId: true } } },
-      });
-
-      if (!hotel || hotel.city.countryId !== userCountryId) {
-        throw new ForbiddenException('Access denied to this hotel.');
-      }
+    // Enforce access to hotel by country
+    const hotel = await this.prisma.hotel.findUnique({
+      where: { id: hotelId },
+      select: { city: { select: { countryId: true } } },
+    });
+    console.log(hotel,"hotelll",hotelId)
+    if (!hotel) {
+      throw new NotFoundException('Hotel not found.');
     }
+
+    this.rolePermissionService.enforceManageInCountry(
+      userRole,
+      Permission.VIEW_HOTELS,
+      userCountryId,
+      hotel.city.countryId,
+    );
 
     // Pagination and sorting
     return paginateAndSort(
-      this.prisma.room, // Prisma model
+      this.prisma.room,
       {
         where: filters,
-        include: {
-          hotel: {
-            include: {
-              city: {
-                include: { country: true },
+
+      },
+      {
+        page: query.page || 1,
+        limit: query.limit || 10,
+        sortField: query.sortField,
+        sortOrder: query.sortOrder,
+      },
+      ['roomNumber', 'type', 'createdAt'],
+    );
+  }
+  async getRoom(hotelId: number,RoomsId: number, userRole: Role, userCountryId: number) {
+    this.rolePermissionService.enforcePermission(userRole, Permission.VIEW_HOTELS);
+    console.log(hotelId,RoomsId,userRole,userCountryId)
+    const room = await this.prisma.room.findFirst({
+      where: {
+        id: RoomsId,
+        hotelId: hotelId,
+      },
+      include: {
+        hotel: {
+          include: {
+            city: {
+              include: {
+                country: true,
               },
             },
           },
         },
       },
-      {
-        page: parseInt(query.offset as any, 10) || 1,
-        limit: parseInt(query.limit as any, 10) || 10,
-        sortField: query.sortField,
-        sortOrder: query.sortOrder,
-      },
-      ['roomNumber', 'type', 'createdAt'], // Allowed sort fields
+    });
+  
+    if (!room) {
+      throw new NotFoundException('Room not found.');
+    }
+  
+    this.rolePermissionService.enforceManageInCountry(
+      userRole,
+      Permission.VIEW_HOTELS,
+      userCountryId,
+      room.hotel.city.countryId,
     );
+  
+    return room;
   }
-
-  async createRoom(
-    dto: CreateRoomDto,
-    userRole: string,
-    userCountryId?: number,
-    hotelId?: number,
-  ) {
+  async createRoom(dto: CreateRoomDto, userRole: Role, userCountryId?: number, hotelId?: number) {
+    this.rolePermissionService.enforcePermission(userRole, Permission.CREATE_HOTELS);
+  
     const hotel = await this.prisma.hotel.findUnique({
       where: { id: hotelId },
       select: { city: { select: { countryId: true } } },
     });
-
+  
     if (!hotel) {
       throw new NotFoundException('Hotel not found.');
     }
-
-    if (userRole === 'REGIONAL_ADMIN' && hotel.city.countryId !== userCountryId) {
-      throw new ForbiddenException('You can only add rooms to hotels in your assigned country.');
-    }
-
-    return this.prisma.room.create({
-      data: {
-        roomNumber: dto.roomNumber,
-        type: dto.type,
-        hotelId,
-      },
-      select : {
-        id: true,
-        roomNumber: true,
-        type: true,
-        hotelId: true,
+  
+    this.rolePermissionService.enforceManageInCountry(
+      userRole,
+      Permission.CREATE_HOTELS,
+      userCountryId,
+      hotel.city.countryId,
+    );
+  
+    try {
+      return await this.prisma.room.create({
+        data: { roomNumber: dto.roomNumber, type: dto.type, hotelId },
+      });
+    } catch (error) {
+      if (error.code === 'P2002') { // Prisma's unique constraint error code
+        throw new BadRequestException(
+          `Room number ${dto.roomNumber} already exists for the selected hotel.`,
+        );
       }
-    });
+      throw error; // Rethrow other unexpected errors
+    }
   }
+  
 
   async editRoom(
     roomId: number,
     dto: EditRoomDto,
-    userRole: string,
+    userRole: Role,
     userCountryId?: number,
     hotelId?: number,
   ) {
+    this.rolePermissionService.enforcePermission(userRole, Permission.EDIT_HOTELS);
+
     const room = await this.prisma.room.findFirst({
       where: { id: roomId, hotelId },
       include: { hotel: { include: { city: { select: { countryId: true } } } } },
@@ -119,25 +153,27 @@ export class RoomsService {
       throw new NotFoundException('Room not found.');
     }
 
-    if (userRole === 'REGIONAL_ADMIN' && room.hotel.city.countryId !== userCountryId) {
-      throw new ForbiddenException('You can only edit rooms in your assigned country.');
-    }
+    this.rolePermissionService.enforceManageInCountry(
+      userRole,
+      Permission.EDIT_HOTELS,
+      userCountryId,
+      room.hotel.city.countryId,
+    );
 
     return this.prisma.room.update({
       where: { id: roomId },
-      data: {
-        roomNumber: dto.roomNumber,
-        type: dto.type,
-      },
+      data: { roomNumber: dto.roomNumber, type: dto.type },
     });
   }
 
   async deleteRoom(
     roomId: number,
-    userRole: string,
+    userRole: Role,
     userCountryId?: number,
     hotelId?: number,
   ) {
+    this.rolePermissionService.enforcePermission(userRole, Permission.DELETE_HOTELS);
+
     const room = await this.prisma.room.findFirst({
       where: { id: roomId, hotelId },
       include: { hotel: { include: { city: { select: { countryId: true } } } } },
@@ -147,9 +183,12 @@ export class RoomsService {
       throw new NotFoundException('Room not found.');
     }
 
-    if (userRole === 'REGIONAL_ADMIN' && room.hotel.city.countryId !== userCountryId) {
-      throw new ForbiddenException('You can only delete rooms in your assigned country.');
-    }
+    this.rolePermissionService.enforceManageInCountry(
+      userRole,
+      Permission.DELETE_HOTELS,
+      userCountryId,
+      room.hotel.city.countryId,
+    );
 
     return this.prisma.room.delete({
       where: { id: roomId },

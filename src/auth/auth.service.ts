@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { AuthDto } from './dto';
 import { Response } from 'express';
 import { ConfigService } from '@nestjs/config';
@@ -6,6 +6,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import * as argon from 'argon2';
 import { Role } from '@prisma/client';
+import { Admin } from 'types/admin';
 
 @Injectable()
 export class AuthService {
@@ -15,26 +16,26 @@ export class AuthService {
     private readonly config: ConfigService,
   ) {}
 
-  async signin(dto: AuthDto, response: Response): Promise<{ message: string }> {
-    const user = await this.prisma.user.findUnique({
+  async signin(dto: AuthDto, response: Response): Promise<{ token: string }> {
+    const user = await this.prisma.admin.findUnique({
       where: { email: dto.email.toLowerCase() },
     });
 
-    if (!user) throw new ForbiddenException('Invalid email or password.');
+    if (!user) throw new UnauthorizedException('Invalid email or password.');
 
-    const isPasswordValid = await argon.verify(user.hash, dto.password);
-    if (!isPasswordValid) throw new ForbiddenException('Invalid email or password.');
+    const isPasswordValid = await argon.verify(user.password, dto.password);
+    if (!isPasswordValid) throw new UnauthorizedException('Invalid email or password.');
 
     const token = this.generateJwt(user.id, user.email, user.role);
     this.setCookie(response, token);
 
-    return { message: 'Signin successful' };
+    return { token: token };
   }
 
   async logout(response: Response): Promise<{ message: string }> {
     response.clearCookie('Authentication', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: this.config.get('NODE_ENV') === 'production',
     });
 
     return { message: 'Logout successful' };
@@ -46,16 +47,18 @@ export class AuthService {
 
     return this.jwt.sign(payload, {
       secret,
-      expiresIn: '1h',
+      expiresIn: '23h',
     });
   }
 
   private setCookie(response: Response, token: string): void {
     response.cookie('Authentication', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 3600000,
+      secure: true,
+    // maxAge: 3600000,
+    maxAge: 3600000000,
       sameSite: 'strict',
     });
   }
+
 }

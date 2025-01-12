@@ -13,11 +13,12 @@ export class ClientJwtStrategy extends PassportStrategy(Strategy, 'clientJwt') {
     private prisma: PrismaService,
   ) {
     super({
-      jwtFromRequest: ExtractJwt.fromExtractors([
-        (req: Request) => {
-          return req?.cookies?.Authentication;
-        },
-      ]),
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      // jwtFromRequest: ExtractJwt.fromExtractors([
+      //   (req: Request) => {
+      //     return req?.cookies?.Authentication;
+      //   },
+      // ]),
       secretOrKey: config.get('JWT_SECRET'),
     });
   }
@@ -30,10 +31,12 @@ export class ClientJwtStrategy extends PassportStrategy(Strategy, 'clientJwt') {
       },
       select: {
         id: true,
+        roomNumber: true,
         hotelId: true,
         hotel: {
           select: {
             cityId: true,
+            name: true
           },
         },
       },
@@ -43,11 +46,23 @@ export class ClientJwtStrategy extends PassportStrategy(Strategy, 'clientJwt') {
       // Handle the case where the room or hotel is not found
       return null;
     }
-
+    const City = await this.prisma.city.findUnique({
+      where: {
+        id: room.hotel.cityId,
+      },
+      include : {
+        country: true,
+      }
+    })
     return {
       roomId: room.id,
+      roomNumber: payload.roomNumber,
+      hotelId: room.hotelId,
+      hotelName: room.hotel.name,
       clientId: payload.clientId,
       cityId: room.hotel.cityId,
+      countryCode: City.country.code, // Note the optional chaining operator (?.)
+      currencySign: City.country.currency,
     };
   }
 }

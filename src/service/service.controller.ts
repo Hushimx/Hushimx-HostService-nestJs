@@ -1,39 +1,97 @@
-import { Controller, Get, Post, Delete, Param, Body, UseGuards, NotFoundException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Param,
+  Body,
+  UseGuards,
+  NotFoundException,
+} from '@nestjs/common';
 import { ServiceService } from './service.service';
 import { PlaceServiceOrderDto } from './dto/place-service-order.dto';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody, ApiParam } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiBody,
+  ApiParam,
+} from '@nestjs/swagger';
 import { ClientJwt } from '../auth/guard/clientJwt.guard';
 import { GetUser } from '../auth/decorator';
 import { Client } from '@prisma/client';
 
+@UseGuards(ClientJwt)
 @ApiTags('Service')
 @Controller('service')
 export class ServiceController {
   constructor(private readonly serviceService: ServiceService) {}
 
-  // Get service details by slug
-  @Get(':slug')
-  @ApiOperation({ summary: 'Get service details by slug' })
-  @ApiParam({ name: 'slug', required: true, description: 'Slug of the service to retrieve', example: 'laundry-service' })
+  // Get all service orders
+  @Get('orders')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get all service orders for the authenticated client' })
   @ApiResponse({
     status: 200,
-    description: 'Service details retrieved successfully',
+    description: 'All service orders retrieved successfully',
+    schema: {
+      example: [
+        {
+          id: 1,
+          clientId: 1,
+          serviceId: 5,
+          vendorId: 3,
+          notes: 'Urgent cleaning service',
+          status: 'PENDING',
+          total: 50.0,
+          createdAt: '2024-01-01T12:00:00.000Z',
+          updatedAt: '2024-01-01T12:00:00.000Z',
+          service: {
+            name: 'Laundry Service',
+            description: 'Professional laundry service',
+          },
+          vendor: {
+            name: 'Quick Laundry',
+          },
+        },
+      ],
+    },
+  })
+  async getServiceOrders(@GetUser() client: Client) {
+    return this.serviceService.getOrders(client.id);
+  }
+
+  // Get service order details by ID
+  @Get('orders/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get service order details by ID' })
+  @ApiParam({ name: 'id', required: true, description: 'ID of the service order', example: 1 })
+  @ApiResponse({
+    status: 200,
+    description: 'Service order details retrieved successfully',
     schema: {
       example: {
-        name: 'Laundry Service',
-        description: 'Professional laundry services',
-        price: 50.0,
+        id: 123,
+        clientId: 1,
+        serviceId: 5,
+        vendorId: 3,
+        notes: 'Urgent cleaning service',
+        status: 'PENDING',
+        total: 50.0,
+        createdAt: '2024-01-01T12:00:00.000Z',
+        updatedAt: '2024-01-01T12:00:00.000Z',
       },
     },
   })
-  async getService(@Param('slug') slug: string) {
-    return this.serviceService.getService(slug);
+  @ApiResponse({ status: 404, description: 'Service order not found' })
+  async getServiceOrderDetails(@Param('id') orderId: string, @GetUser() client: Client) {
+    return this.serviceService.getServiceOrderDetails(orderId, client.id);
   }
 
   // Place a new service order
-  @UseGuards(ClientJwt)
+  @Post('orders')
   @ApiBearerAuth()
-  @Post('order')
   @ApiOperation({ summary: 'Place a new service order' })
   @ApiBody({
     type: PlaceServiceOrderDto,
@@ -41,8 +99,7 @@ export class ServiceController {
       exampleOrder: {
         summary: 'Example Service Order',
         value: {
-          serviceSlug: 'laundry-service',
-          cityId: 1,
+          slug: 'laundry-service',
           notes: 'Please complete by end of day',
         },
       },
@@ -73,9 +130,8 @@ export class ServiceController {
   }
 
   // Cancel a service order by ID
-  @UseGuards(ClientJwt)
+  @Delete('orders/:id')
   @ApiBearerAuth()
-  @Delete('order/:id')
   @ApiOperation({ summary: 'Cancel a service order by ID if it is still pending' })
   @ApiParam({ name: 'id', required: true, description: 'ID of the service order to cancel', example: 1 })
   @ApiResponse({
@@ -91,31 +147,25 @@ export class ServiceController {
     return this.serviceService.cancelServiceOrder(orderId, client.id);
   }
 
-  // Get service order details by ID
-  @UseGuards(ClientJwt)
-  @ApiBearerAuth()
-  @Get('order/:id')
-  @ApiOperation({ summary: 'Get service order details by ID' })
-  @ApiParam({ name: 'id', required: true, description: 'ID of the service order', example: 1 })
+  @Get(':slug')
+  @ApiOperation({ summary: 'Get service details by slug' })
+  @ApiParam({ name: 'slug', required: true, description: 'Slug of the service to retrieve', example: 'laundry-service' })
   @ApiResponse({
     status: 200,
-    description: 'Service order details retrieved successfully',
+    description: 'Service details retrieved successfully',
     schema: {
       example: {
-        id: 123,
-        clientId: 1,
-        serviceId: 5,
-        vendorId: 3,
-        notes: 'Urgent cleaning service',
-        status: 'PENDING',
-        total: 50.0,
-        createdAt: '2024-01-01T12:00:00.000Z',
-        updatedAt: '2024-01-01T12:00:00.000Z',
+        name: 'Laundry Service',
+        description: 'Professional laundry services',
+        servicePrices: [
+          {
+          title: 'Regular Laundry',
+          price: 10.0,
+        }],
       },
     },
   })
-  @ApiResponse({ status: 404, description: 'Service order not found' })
-  async getServiceOrderDetails(@Param('id') orderId: string, @GetUser() client: Client) {
-    return this.serviceService.getServiceOrderDetails(orderId, client.id);
+  async getService(@Param('slug') slug: string,@GetUser() user) {
+    return this.serviceService.getService(slug,user.cityId);
   }
 }

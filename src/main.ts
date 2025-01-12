@@ -17,11 +17,13 @@ async function bootstrap() {
     }),
   );
 
+  
   // Enable CORS
   app.enableCors({
     origin: 'http://127.0.0.1:3000', // Adjust the origin if necessary
-    methods: 'GET,POST,PUT,DELETE,OPTIONS',
+    methods: 'GET,POST,PATCH,PUT,DELETE,OPTIONS',
     allowedHeaders: 'Content-Type, Authorization, X-XSRF-TOKEN',
+    credentials: true,
   });
 
   // Swagger Configuration

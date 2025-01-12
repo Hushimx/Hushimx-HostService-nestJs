@@ -16,9 +16,10 @@ import { QueryRoomsDto, CreateRoomDto, EditRoomDto } from 'src/admin/dto/rooms.d
 import { GetUser } from 'src/auth/decorator';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { AdminJwt } from 'src/auth/guard';
+import { Admin } from 'types/admin';
 
 @ApiTags('Hotels/Rooms')
-@Controller('rooms')
+@Controller('admin/rooms')
 @UseGuards(AdminJwt)
 @ApiBearerAuth()
 export class RoomsController {
@@ -27,15 +28,20 @@ export class RoomsController {
   @Get(':hotelId')
   @ApiOperation({ summary: 'Get all rooms for a specific hotel with pagination, sorting, and filtering' })
   @ApiResponse({ status: 200, description: 'Returns a list of rooms.' })
+  @ApiResponse({ status: 401, description: 'Room already exists' })
   async getRooms(
     @Param('hotelId', ParseIntPipe) hotelId: number,
     @Query(new ValidationPipe({ transform: true, whitelist: true })) query: QueryRoomsDto,
     @GetUser() user,
   ) {
-    console.log(query)
-    return this.roomsService.getRooms(query, user.role, user.countryId, hotelId);
+    return this.roomsService.getRooms(hotelId,query, user.role, user.countryId,);
   }
-
+  @Get(':hotelId/:id')
+  @ApiOperation({ summary: 'Get a specific room for a specific hotel' })
+  @ApiResponse({ status: 200, description: 'Returns a single room.' })
+  async getRoom(@Param('hotelId', ParseIntPipe) hotelId: number, @Param('id', ParseIntPipe) id: number,@GetUser() admin : Admin) {
+    return this.roomsService.getRoom(hotelId,id, admin.role, admin.countryId);
+  }
   @Post(':hotelId')
   @ApiOperation({ summary: 'Create a new room for a specific hotel' })
   @ApiResponse({ status: 201, description: 'Room created successfully.' })
@@ -54,7 +60,6 @@ export class RoomsController {
     @Param('hotelId', ParseIntPipe) hotelId: number,
     @Param('id', ParseIntPipe) id: number,
     @Body(new ValidationPipe({ transform: true, whitelist: true })) dto: EditRoomDto,
-
     @GetUser() user,
   ) {
     return this.roomsService.editRoom(id, dto, user.role, user.countryId, hotelId);

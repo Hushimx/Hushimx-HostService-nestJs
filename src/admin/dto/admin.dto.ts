@@ -1,5 +1,31 @@
-import { IsEmail, IsNotEmpty, IsOptional,isString, IsEnum, IsInt } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { IsEmail, IsNotEmpty, IsOptional,IsString,Min, Max, IsEnum, IsInt } from 'class-validator';
+import { Type } from 'class-transformer';
+
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Role } from '@prisma/client';
+import { PaginationAndSortingDto } from './pagination.dto';
+
+export class GetAdminsQueryDto extends PaginationAndSortingDto {
+  @ApiProperty({ description: 'Email of the admin', example: 'admin@example.com' })
+  @IsOptional()
+  email?: string;
+
+  @ApiProperty({ description: 'First name of the admin', example: 'John' })
+  @IsOptional()
+  name?: string
+  
+  @ApiProperty({ description: 'Role of the admin', enum: ['SUPER_ADMIN', 'REGIONAL_ADMIN'] })
+  @IsOptional()
+  @IsEnum(Role, { message: 'role must be a valid enum value (SUPER_ADMIN or REGIONAL_ADMIN)' })
+
+  role?: Role;
+
+  @ApiProperty({ description: 'Country ID (required for regional_admin)', example: 1 })
+  @Type(() => Number) // Ensures the value is transformed to a number
+  @IsOptional()
+  country?: number;
+}
+
 
 export class CreateAdminDto {
   @ApiProperty({ description: 'Email of the admin', example: 'admin@example.com' })
@@ -11,21 +37,18 @@ export class CreateAdminDto {
   @IsNotEmpty()
   password: string;
 
-  @ApiProperty({ description: 'First name of the admin', example: 'John' })
+  @ApiProperty({ description: ' name of the admin', example: 'John' })
   @IsNotEmpty()
-  firstName: string
-
-  @ApiProperty({ description: 'Last name of the admin', example: 'Doe' })
-  @IsNotEmpty()
-  lastName: string
+  name: string
   
   @ApiProperty({ description: 'Role of the admin', enum: ['SUPER_ADMIN', 'REGIONAL_ADMIN'] })
   @IsNotEmpty()
-  @IsEnum(['SUPER_ADMIN', 'REGIONAL_ADMIN'])
-  role: string;
+  @IsEnum(Role)
+  role: Role;
 
   @ApiProperty({ description: 'Country ID (required for regional_admin)', example: 1 })
   @IsOptional()
+  @Type(() => Number) // Ensures the value is transformed to a number
   @IsInt()
   countryId?: number;
 }
@@ -41,20 +64,17 @@ export class EditAdminDto {
   password?: string;
 
   @ApiProperty({ description: 'First name of the admin', example: 'John' })
-  @IsNotEmpty()
-  firstName: string
-
-  @ApiProperty({ description: 'Last name of the admin', example: 'Doe' })
-  @IsNotEmpty()
-  lastName: string
+  @IsOptional()
+  name?: string
   
   @ApiProperty({ description: 'Role of the admin', enum: ['SUPER_ADMIN', 'REGIONAL_ADMIN'], required: false })
   @IsOptional()
-  @IsEnum(['SUPER_ADMIN', 'REGIONAL_ADMIN'])
-  role?: string;
+  @IsEnum(Role)
+  role?: Role;
 
   @ApiProperty({ description: 'Country ID (required for REGIONAL_ADMIN)', example: 1, required: false })
   @IsOptional()
+  @Type(() => Number) // Ensures the value is transformed to a number
   @IsInt()
   countryId?: number;
 }

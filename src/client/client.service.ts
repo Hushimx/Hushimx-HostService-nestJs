@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { UUID } from 'crypto';
 import { ClientLoginDto } from './dto';
 import { response, Response } from 'express';
+import { GetUser } from 'src/auth/decorator';
 
 @Injectable()
 export class ClientService {
@@ -15,52 +16,90 @@ export class ClientService {
     ) {}
 
 
-
-    async loginWithRoomUUID(dto: ClientLoginDto,response: Response): Promise<{ message: string }> {
-        // Search for the room by UUID in the database
-        const room = await this.prisma.room.findUnique({
-            where: {
-                uuid: dto.clientId,
-            },
-            select: {
-                id: true,
-                hotelId: true,
-                hotel: {
-                  select: {
-                    cityId: true,
-                  },
-                },
-              },
-        
-        });
-
-        // Handle case where the room is not found
-        if (!room) {
-            throw new UnauthorizedException('Access denied: invalid or missing credentials');
-        }
-
-        // Construct payload with room info
-        const payload = {
-            clientId : 1,
-            roomId: room.id,
-            cityId: room.hotel.cityId,
-              };
-
-        const secret = this.config.get('JWT_SECRET');
-        // Generate the token with the room information in the payload
-        const token = await this.jwt.signAsync(payload, {
-            expiresIn: '1hr',
-            secret: secret,
-        });
-        response.cookie('Authentication', token, {
-            httpOnly: true, // Prevents JavaScript from accessing the cookie
-            secure: true, // Use secure cookies in production
-            maxAge: 3600000, // 1 hour in milliseconds
-          });
-        return { message: 'Login successful' };
+    async checkRoomAvailability(uuid: UUID): Promise<boolean> {
+      const room = await this.prisma.room.findUnique({
+        where: {
+          uuid: uuid,
+        },
+      })
+  
+      if (!room) {
+        throw new NotFoundException('Room not found');
+      }
+  
+      return true;
     }
+  
+    async login(dto: ClientLoginDto): Promise<{ message: string; token: string }> {
+      // Step 1: Validate Room by UUID
+      const room = await this.prisma.room.findUnique({
+        where: {
+          uuid: dto.uuid,
+        },
+        select: {
+          id: true,
+          hotelId: true,
+          roomNumber: true,
+          hotel: {
+            select: {
+              name: true,
+              cityId: true
+            },
+          },
+        },
+      });
+    
+      if (!room) {
+        throw new UnauthorizedException({
+          code: 'INVALID_ROOM_UUID',
+          message: 'INVALID Room Code',
+        });
+      }
+      // Step 2: Find or Create Client by Phone Number
+      let client = await this.prisma.client.findFirst({
+        where: {
+          phoneNo: dto.phoneNumber,
+        },
+      });
+    
+      if (!client) {
+        // Create new client if not found
+        client = await this.prisma.client.create({
+          data: {
+            phoneNo: dto.phoneNumber,
+            countryCode:"SA"
+          },
+        });
+      }
+    
+      // Step 3: Construct JWT Payload
+      const payload = {
+        clientId: client.id,
+        roomId: room.id,
+        // roomNumber: room.roomNumber,
+        // HotelId: room.hotelId,
+        // cityId: room.hotel.cityId,
+      };
+    
+      // Step 4: Generate JWT Token
+      const secret = this.config.get('JWT_SECRET');
+      const token = await this.jwt.signAsync(payload, {
+        expiresIn: '6h',
+        secret: secret,
+      });
+    
+    
+      // Return Success Response
+      return {
+        message: 'Login successful',
+        token: token,
+
+      };
+    }
+    
     async logout(response: Response) {
         response.clearCookie('Authentication');
         return { message: 'Logout successful' };
-      }
+    }
+
 }

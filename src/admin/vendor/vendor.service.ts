@@ -2,95 +2,232 @@ import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/commo
 import { PrismaService } from 'src/prisma/prisma.service';
 import { paginateAndSort, PaginatedResult } from 'src/utils/pagination';
 import { CreateVendorDto, QueryVendorDto, UpdateVendorDto } from '../dto/vendor.dto';
+import { RolePermissionService } from 'src/auth/role-permission-service/role-permission-service.service';
+import { Permission, Role } from 'src/auth/role-permission-service/rolesData';
+import { buildFilters } from 'src/utils/filters';
 
 @Injectable()
 export class VendorService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly rolePermissionService: RolePermissionService,
+  ) {}
 
-  async create(createVendorDto: CreateVendorDto, userRole: string, userCountryId?: number) {
-    // Ensure regional admins can only create vendors in their country
-    if (userRole === 'REGIONAL_ADMIN') {
-      const city = await this.prisma.city.findUnique({
-        where: { id: createVendorDto.cityId },
-        select: { countryId: true },
-      });
-
-      if (!city || city.countryId !== userCountryId) {
-        throw new ForbiddenException('You can only add vendors in your assigned country.');
-      }
+  /**
+   * Create a new vendor
+   */
+  async create(createVendorDto: CreateVendorDto, userRole: Role, userCountryId?: number) {
+    // Enforce create permission
+    this.rolePermissionService.enforcePermission(userRole, Permission.CREATE_VENDORS);
+  
+    // Validate the city and enforce country-specific access
+    const city = await this.prisma.city.findUnique({
+      where: { id: createVendorDto.cityId },
+      select: { countryId: true },
+    });
+  
+    if (!city) {
+      throw new NotFoundException('City not found.');
     }
-
+  
+    // Enforce RBAC for country-specific access
+    this.rolePermissionService.enforceManageInCountry(
+      userRole,
+      Permission.CREATE_VENDORS,
+      userCountryId,
+      city.countryId,
+    );
+  
+    // Hash the password (if applicable)
+    const hashedPassword = await this.hashPassword(createVendorDto.password);
+  
+    // Create the vendor
     return this.prisma.vendor.create({
-      data: createVendorDto,
+      data: {
+        email: createVendorDto.email,
+        password: hashedPassword,
+        name: createVendorDto.name,
+        phoneNo: createVendorDto.phoneNo,
+        address: createVendorDto.address,
+        cityId: createVendorDto.cityId,
+        locationUrl: createVendorDto.locationUrl || null,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phoneNo: true,
+        address: true,
+        locationUrl: true,
+        city: {
+          select: {
+            id: true,
+            name: true,
+            country: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
     });
   }
-
+  
+  // Helper method for password hashing (if required)
+  private async hashPassword(password: string): Promise<string> {
+    return require('argon2').hash(password);
+  }
+  /**
+   * Retrieve vendors with pagination, sorting, and filtering
+   */
   async findAll(
-    query: QueryVendorDto,
-    userRole: string,
+    dto: QueryVendorDto,
+    userRole: Role,
     userCountryId?: number,
   ): Promise<PaginatedResult<any>> {
-    const filters: any = {};
+    // Enforce view permission
+    this.rolePermissionService.enforcePermission(userRole, Permission.VIEW_VENDORS);
 
-    // Super Admin: Optional country filtering
-    if (userRole === 'SUPER_ADMIN' && query.countryId) {
-      filters.city = { countryId: query.countryId };
-    }
+    // Apply filters
+    const filters = buildFilters({
+      userRole,
+      userCountryId,
+      dto,
+      allowedFields: ['name', 'email','phoneNo'], // Fields allowed for filtering
+    });
 
-    // Regional Admin: Restrict to their assigned country
-    if (userRole === 'REGIONAL_ADMIN') {
-      if (!userCountryId) {
-        throw new ForbiddenException('Country ID is required for REGIONAL_ADMIN access.');
-      }
-      filters.city = { countryId: userCountryId };
-    }
 
-    // Use the pagination and sorting utility
+
+
+
+
     return paginateAndSort(
       this.prisma.vendor,
       {
         where: filters,
-        include: { city: { include: { country: true } } }, // Include city and country data
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phoneNo: true,
+          address: true,
+          locationUrl: true,
+          city: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        }
       },
       {
-        page: query.page || 1,
-        limit: query.limit || 10,
-        sortField: query.sortField,
-        sortOrder: query.sortOrder,
+        page: dto.page || 1,
+        limit: dto.limit || 10,
+        sortField: dto.sortField,
+        sortOrder: dto.sortOrder,
       },
-      ['name', 'cityId', 'createdAt'], // Allowed sort fields
+      ['name', 'cityId', 'createdAt'],
     );
   }
 
-  async findOne(id: number, userRole: string, userCountryId?: number) {
+  /**
+   * Retrieve a single vendor by ID
+   */
+  async findOne(id: number, userRole: Role, userCountryId?: number) {
+    // Enforce view permission
+    this.rolePermissionService.enforcePermission(userRole, Permission.VIEW_VENDORS);
+
+    // Fetch the vendor and validate access
     const vendor = await this.prisma.vendor.findUnique({
       where: { id },
-      include: { city: true },
+      include: { city: { select: { countryId: true } } },
     });
 
     if (!vendor) {
       throw new NotFoundException('Vendor not found.');
     }
 
-    // Apply country-based restrictions for regional admins
-    if (userRole === 'REGIONAL_ADMIN' && vendor.city.countryId !== userCountryId) {
-      throw new ForbiddenException('Access denied to this vendor.');
-    }
-
+    this.rolePermissionService.enforceManageInCountry(
+      userRole,
+      Permission.VIEW_VENDORS,
+      userCountryId,
+      vendor.city.countryId,
+    );
+    delete vendor.password;
     return vendor;
   }
 
-  async update(id: number, updateVendorDto: UpdateVendorDto, userRole: string, userCountryId?: number) {
-    const vendor = await this.findOne(id, userRole, userCountryId);
-
+  /**
+   * Update an existing vendor
+   */
+  async update(
+    vendorId: number,
+    updateVendorDto: UpdateVendorDto & { password?: string },
+    userRole: Role,
+    userCountryId?: number,
+  ) {
+    // Enforce update permission
+    this.rolePermissionService.enforcePermission(userRole, Permission.EDIT_VENDORS);
+  
+    // Validate the vendor exists
+    const vendor = await this.prisma.vendor.findUnique({
+      where: { id: vendorId },
+      select: { city: { select: { countryId: true } } },
+    });
+  
+    if (!vendor) {
+      throw new NotFoundException('Vendor not found.');
+    }
+  
+    // Enforce country-specific access
+    this.rolePermissionService.enforceManageInCountry(
+      userRole,
+      Permission.EDIT_VENDORS,
+      userCountryId,
+      vendor.city.countryId,
+    );
+  
+    // Prepare update data
+    const updateData: any = { ...updateVendorDto };
+  
+    // Hash the password if it's being updated
+    if (updateVendorDto.password) {
+      updateData.password = await this.hashPassword(updateVendorDto.password);
+    } else {
+      delete updateData.password; // Ensure password is not included if not provided
+    }
+  
+    // Update the vendor
     return this.prisma.vendor.update({
-      where: { id },
-      data: updateVendorDto,
+      where: { id: vendorId },
+      data: updateData,
+      select: {
+        id: true,
+        name: true,
+        email:true,
+        phoneNo: true,
+        city: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
     });
   }
+  
 
-  async remove(id: number, userRole: string, userCountryId?: number) {
-    const vendor = await this.findOne(id, userRole, userCountryId);
+  /**
+   * Delete a vendor
+   */
+  async remove(id: number, userRole: Role, userCountryId?: number) {
+    // Enforce delete permission
+    this.rolePermissionService.enforcePermission(userRole, Permission.DELETE_VENDORS);
+
+    // Validate access to the vendor
+    await this.findOne(id, userRole, userCountryId);
 
     return this.prisma.vendor.delete({
       where: { id },

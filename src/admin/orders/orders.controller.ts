@@ -1,32 +1,60 @@
-import { Controller, Get, Patch, Delete, Query, Param, Body, UseGuards, ParseIntPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Patch,
+  Delete,
+  Query,
+  Param,
+  Body,
+  ParseIntPipe,
+  ValidationPipe,
+  UseGuards,
+} from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { QueryOrdersDto, EditOrderDto } from 'src/admin/dto/orders.dto';
 import { GetUser } from 'src/auth/decorator';
-import { ClientJwt } from 'src/auth/guard/clientJwt.guard';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { AdminJwt } from 'src/auth/guard';
 
-@ApiTags('Prodcuts/Orders')
-@Controller('orders')
-@UseGuards(ClientJwt)
+@ApiTags('Orders')
+@Controller('admin/orders')
 @ApiBearerAuth()
+@UseGuards(AdminJwt)
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get all orders with pagination, sorting, and filtering' })
-  async getOrders(@Query() query: QueryOrdersDto, @GetUser() user) {
+  @ApiOperation({ summary: 'Get all orders with filtering, pagination, and sorting' })
+  async getOrders(
+    @Query(new ValidationPipe({ transform: true, whitelist: true })) query: QueryOrdersDto,
+    @GetUser() user: any,
+  ) {
     return this.ordersService.getOrders(query, user.role, user.countryId);
   }
-
+  @Get(":id")
+  @ApiOperation({ summary: 'Get an order by ID' })
+  async getOrder(
+    @Param('id', ParseIntPipe) id: number,
+    @GetUser() user: any,
+  ) {
+    return this.ordersService.getOrder(id, user.role, user.countryId);
+  }
   @Patch(':id')
   @ApiOperation({ summary: 'Edit an order' })
-  async editOrder(@Param('id',ParseIntPipe) id: number, @Body() dto: EditOrderDto) {
-    return this.ordersService.editOrder(id, dto);
+  async editOrder(
+    @Param('id', ParseIntPipe) id: number,
+    @Body(new ValidationPipe({ transform: true, whitelist: true })) dto: EditOrderDto,
+    @GetUser() user: any,
+  ) {
+    return this.ordersService.editOrder(id, dto, user.role);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete an order' })
-  async deleteOrder(@Param('id',ParseIntPipe) id: number) {
-    return this.ordersService.deleteOrder(id);
+  async deleteOrder(
+    @Param('id', ParseIntPipe) id: number,
+    @GetUser() user: any,
+  ) {
+    return this.ordersService.deleteOrder(id, user.role);
   }
 }

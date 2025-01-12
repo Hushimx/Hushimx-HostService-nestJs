@@ -15,13 +15,15 @@ model Country {
   id        Int      @id @default(autoincrement())
   name      String   @unique
   code      String   @unique           // Country code (e.g., "US" for the United States)
+  currency  String   @unique           // Currency code (e.g., "USD" for the United States)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users      User[]  
+  Admins      Admin[]  
   cities     City[]
 
   @@map("countries")
+  Client Client[]
 }
 
 model City {
@@ -34,24 +36,25 @@ model City {
   country    Country @relation(fields: [countryId], references: [id])
   hotels     Hotel[]
   vendors    Vendor[]
-  orders     Order[]
-  Products   Product[]   // Relation to orders placed within the city
+  Store Store[]
+  orders     DeliveryOrder[]
+  Driver Driver[] 
 
   @@unique([name, countryId])           // Ensures city names are unique within each country
   @@map("cities")
   CityServiceVendor CityServiceVendor[]
+  ServiceOrder ServiceOrder[]
+  Events Events[]
 }
 
-model User {
+model Admin {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   email     String    @unique
-  hash      String
-
-  firstName String?
-  lastName  String?
+  password      String
+  name String
   countryId Int
   country   Country   @relation(fields: [countryId], references: [id])
 
@@ -59,18 +62,20 @@ model User {
 
   bookmarks Bookmark[]
 
-  @@map("users")
+  @@map("admins")
 }
 model Client {
   id        Int       @id @default(autoincrement())
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   name      String?
-  phoneNo   String
-
-  Order Order[]
-  @@map("clients")
+  phoneNo   String    @unique
+  countryCode String
+  Order DeliveryOrder[]
   ServiceOrder ServiceOrder[]
+  
+  country   Country   @relation(fields: [countryCode], references: [code])
+  @@map("clients")
 }
 model Bookmark {
   id         Int      @id @default(autoincrement())
@@ -81,11 +86,34 @@ model Bookmark {
   description String?
   link       String
 
-  userId     Int
-  user       User      @relation(fields: [userId], references: [id])
+  AdminId     Int
+  Admin       Admin      @relation(fields: [AdminId], references: [id])
 
   @@map("bookmarks")
 }
+
+model Events {
+  id         Int      @id @default(autoincrement())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  title String
+  description String?
+  description_ar String?
+
+  address String
+  locationUrl String?
+
+  cityId Int
+
+
+  city       City      @relation(fields: [cityId], references: [id])
+
+
+
+
+}
+
 
 model Hotel {
   id        Int      @id @default(autoincrement())
@@ -93,12 +121,16 @@ model Hotel {
   updatedAt DateTime @updatedAt
 
   name      String
+  address String
+  locationUrl  String?
+
   cityId    Int
 
-  city      City      @relation(fields: [cityId], references: [id])
+  city      City      @relation(fields: [cityId], references: [id],onDelete: Cascade)
   rooms     Room[]
 
   @@map("hotels")
+  ServiceOrder ServiceOrder[]
 }
 
 model Room {
@@ -111,12 +143,14 @@ model Room {
   type       String
   hotelId    Int
 
-  hotel      Hotel    @relation(fields: [hotelId], references: [id])
+  hotel      Hotel    @relation(fields: [hotelId], references: [id],onDelete: Cascade)
 
   @@map("rooms")
   @@unique([roomNumber, hotelId])  
-  Order Order[]
+  Order DeliveryOrder[]
+  ServiceOrder ServiceOrder[]
 }
+
 
 
 model Service {
@@ -124,8 +158,8 @@ model Service {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  slug        String @unique
   name        String
+  slug        String @unique
   description String?
   serviceOrders ServiceOrder[]
 
@@ -136,7 +170,10 @@ model CityServiceVendor {
   id        Int      @id @default(autoincrement())
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-
+  address String?
+  locationUrl  String?
+  description  String?
+  description_ar  String? 
   serviceId Int
   vendorId  Int
   cityId    Int
@@ -153,23 +190,40 @@ model ServiceOrder {
   id          Int       @id @default(autoincrement())
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  clientId      Int
-  serviceId   Int
-  vendorId    Int
-
+  uuid        String    @default(uuid()) @unique
+  clientId      Int?
+  serviceId   Int?
+  vendorId    Int?
+  cityId     Int?   
+  hotelId    Int?      
+  roomId     Int?          // Foreign key to the Room
+  driverId   Int?
+  
+  serviceName   String
+  vendorName  String
+  clientName  String
+  clientNumber String
+  roomNumber   String
+  hotelName  String
   notes       String?
   status      ServiceOrderStatus
   total       Float     @default(0.0)
   
-  vendor      Vendor    @relation(fields: [vendorId], references: [id])
-  client      Client    @relation(fields: [clientId], references: [id])
-  service     Service   @relation(fields: [serviceId], references: [id])
+  vendor      Vendor?    @relation(fields: [vendorId], references: [id] ,onDelete: SetNull)
+  client      Client?    @relation(fields: [clientId], references: [id],onDelete: SetNull)
+  service     Service?   @relation(fields: [serviceId], references: [id],onDelete: SetNull)
+  hotel       Hotel?      @relation(fields: [hotelId], references: [id],onDelete: SetNull)
+  room       Room?         @relation(fields: [roomId], references: [id],onDelete: SetNull)
+  city       City?         @relation(fields: [cityId], references: [id],onDelete: SetNull)
+  driver     Driver?       @relation(fields: [driverId], references: [id],onDelete: SetNull)
 
   @@map("service_orders")
+  Message Message[]
 }
 
 enum ServiceOrderStatus {
   PENDING
+  PICKUP
   IN_PROGRESS
   COMPLETED
   CANCELED
@@ -177,96 +231,227 @@ enum ServiceOrderStatus {
 
 model Vendor {
   id        Int       @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  email     String   @unique
+  password  String
+  
   name      String
+  phoneNo   String
+  address   String
   cityId    Int
-  location  String?
-  products  Product[]
-  orders  OrderItem[]
+
+  locationUrl  String?
 
   city      City      @relation(fields: [cityId], references: [id], onDelete: Cascade)
 
-  @@map("vendors")
   ServiceOrder ServiceOrder[]
   CityServiceVendor CityServiceVendor[]
+  @@map("vendors")
+  Store Store[]
+  DeliveryOrder DeliveryOrder[]
 }
 
+model Driver {
+  id        Int       @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name      String
+  phoneNo   String
+  cityId    Int
+
+  city      City      @relation(fields: [cityId], references: [id], onDelete: Cascade)
+
+  @@map("drivers")
+  orders  DeliveryOrder[]
+  ServiceOrder ServiceOrder[]
+}
 model Store {
   id        Int       @id @default(autoincrement())
-  name      String    @unique
-  products  Product[] // Relation to products
-  slug      String    @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  uuid      String   @default(uuid()) @unique
 
+  name      String  
+
+  imageUrl  String?
+  bannerUrl String?
+
+  description String?
+  sectionId      Int?
+
+  vendorId  Int
+  cityId    Int
+
+  products  Product[] // Relation to products
+
+  ProductsCategory ProductsCategory[]
+  Order DeliveryOrder[]
+  vendor    Vendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  city      City      @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  section      StoreSection?      @relation(fields: [sectionId], references: [id], onDelete: SetNull)
   @@map("stores")
 }
 
 model Product {
   id        Int       @id @default(autoincrement())
-  uuid      String    @default(uuid()) @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   name      String
   price     Float
-  vendorId  Int
+  categoryId Int?
+  image      String?
+  aproved    Boolean @default(false)
+  
   storeId   Int       // Foreign key for Store relation
-  cityId     Int          // Foreign key to the City where the order was placed
-  city       City         @relation(fields: [cityId], references: [id])
 
-  vendor    Vendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
   store     Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  orderItems OrderItem[]  // Relation to order items
+  categories    ProductsCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull) // Optional relationship
+
+  orderItems DeliveryOrderItem[]  // Relation to order items
 
   @@map("products")
 }
 
+model Message {
+  id        Int      @id @default(autoincrement())
+  to        String
+  content   String
+  type      String
+  deliveryOrderId Int?
+  ServiceOrderId Int?
+
+deliveryOrder DeliveryOrder? @relation(fields: [deliveryOrderId], references: [id])
+  serviceOrder ServiceOrder? @relation(fields: [ServiceOrderId], references: [id])
+  status    MessageStatus   @default(PENDING) // PENDING, SENT, FAILED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ProductsCategory {
+  id         Int         @id @default(autoincrement())
+  name       String
+  storeId    Int         // Foreign key for Store relation
+  store      Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  Products Product[]
+
+  @@unique([name, storeId]) // Ensures category names are unique per store
+  @@map("Products_Category")
+}
+
 // New Order and OrderItem models
 
-model Order {
+model DeliveryOrder {
   id         Int          @id @default(autoincrement())
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
   clientId   Int          // Foreign key to the Client
   cityId     Int          // Foreign key to the City where the order was placed
   roomId     Int          // Foreign key to the Room
+  hotelId    Int
+  vendorId   Int
+  driverId   Int?
 
 
+  storeId Int
+  storeName String
+  
+  currencySign String
+
+  clientName String
+  clientNumber String
+  roomNumber   String
+  hotelName  String
+  
+
+  store       Store         @relation(fields: [storeId], references: [id])
   room       Room         @relation(fields: [roomId], references: [id])
   city       City         @relation(fields: [cityId], references: [id])
   client     Client       @relation(fields: [clientId], references: [id])  
+  Vendor     Vendor       @relation(fields: [vendorId], references: [id])  
+  driver     Driver?       @relation(fields: [driverId], references: [id])
+
+  
+  paymentMethod String
 
   notes       String?
-  status     OrderStatus  // Tracks the current status of the order
+  status     DeliveryOrderStatus  // Tracks the current status of the order
   total      Float        @default(0.0) // Calculated total for the order
 
-  orderItems OrderItem[]  // Relation to order items
+  orderItems DeliveryOrderItem[]  // Relation to order items
 
-  @@map("orders")
+  @@map("delivery_orders")
+  Message Message[]
 }
 
-model OrderItem {
+model DeliveryOrderItem {
   id         Int          @id @default(autoincrement())
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
   orderId    Int          // Foreign key to associate with the Order
   productId  Int          // Foreign key to the Product
-  vendorId   Int          // Foreign key to the Vendor
+  productTitle String
+
+
   quantity   Int          // Quantity of this product in the order
   price      Float        // Price at the time of ordering (for record-keeping)
 
-  order      Order        @relation(fields: [orderId], references: [id])
+  order      DeliveryOrder        @relation(fields: [orderId], references: [id])
   product    Product      @relation(fields: [productId], references: [id])
-  vendor     Vendor       @relation(fields: [vendorId], references: [id])
 
-  @@map("order_items")
+  @@map("delivery_order_items")
 }
+model StoreSection {
+  id          Int       @id @default(autoincrement())
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  name        String     
+  name_ar     String?
+  
+  @@map("store_sections")
+  Store Store[]
+} 
+model PaymentMethod {
+  id          Int       @id @default(autoincrement())
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  name        String     @unique
+  displayName String
+  type        PaymentMethodType
+  isActive    Boolean    @default(true)
+  config      Json?
+
+  @@map("PaymentMethod")
+}
+
+
+//Enums
 
 enum Role {
   REGIONAL_ADMIN
   SUPER_ADMIN
 }
 
-enum OrderStatus {
+enum DeliveryOrderStatus {
+  PENDING   
+  PICKUP
+  ON_WAY      
+  COMPLETED  
+  CANCELED    
+}
+enum MessageStatus {
   PENDING
-  SHIPPED
-  DELIVERED
-  CANCELED
+  SENT
+  FAILED
+  }
+enum PaymentMethodType {
+  offline
+  online
+}
+enum StoreTypes {
+  resturant
+  pharmacy
+  gracery
 }

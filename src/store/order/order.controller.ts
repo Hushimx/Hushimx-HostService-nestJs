@@ -1,3 +1,5 @@
+
+
 import {
   Controller,
   Post,
@@ -13,7 +15,7 @@ import { PlaceOrderDto } from './dto/place-order.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody, ApiParam } from '@nestjs/swagger';
 import { ClientJwt } from '../../auth/guard/clientJwt.guard';
 import { GetUser } from '../../auth/decorator';
-import { User } from '@prisma/client';
+import {  Admin } from '@prisma/client';
 
 @ApiTags('Orders')
 @Controller('orders')
@@ -30,18 +32,9 @@ export class OrderController {
     schema: {
       example: {
         message: 'Order placed successfully',
-        order: {
+        data: {
           id: 123,
-          userId: 1,
-          cityId: 5,
-          status: 'PENDING',
-          total: 130.0,
-          orderItems: [
-            { productId: 1, quantity: 2, price: 50.0 },
-            { productId: 2, quantity: 1, price: 30.0 },
-          ],
-          createdAt: '2024-01-01T12:00:00.000Z',
-          updatedAt: '2024-01-01T12:00:00.000Z',
+
         },
       },
     },
@@ -56,11 +49,12 @@ export class OrderController {
             { productId: 1, quantity: 2 },
             { productId: 2, quantity: 1 },
           ],
+          paymentMethod: 'card',
         },
       },
     },
   })
-  async placeOrder(@Body() dto: PlaceOrderDto, @GetUser() user: User) {
+  async placeOrder(@Body() dto: PlaceOrderDto, @GetUser() user: Admin) {
     return this.orderService.placeOrder(dto, user);
   }
 
@@ -79,15 +73,11 @@ export class OrderController {
           cityId: 5,
           status: 'PENDING',
           total: 130.0,
-          orderItems: [
-            { productId: 1, quantity: 2, price: 50.0 },
-            { productId: 2, quantity: 1, price: 30.0 },
-          ],
         },
       ],
     },
   })
-  async getAllOrders(@GetUser() user: User) {
+  async getAllOrders(@GetUser() user: Admin) {
     return this.orderService.getAllOrders(user.id);
   }
 
@@ -119,7 +109,7 @@ export class OrderController {
     },
   })
   @ApiResponse({ status: 404, description: 'Order not found' })
-  async getOrder(@Param('id',ParseIntPipe) orderId: string, @GetUser() user: User) {
+  async getOrder(@Param('id',ParseIntPipe) orderId: string, @GetUser() user: Admin) {
     return this.orderService.getOrderById(orderId, user.id);
   }
 
@@ -154,7 +144,7 @@ export class OrderController {
       },
     },
   })
-  async cancelOrder(@Param('id',ParseIntPipe) orderId: string, @GetUser() user: User) {
+  async cancelOrder(@Param('id',ParseIntPipe) orderId: string, @GetUser() user: Admin) {
     return this.orderService.cancelOrder(orderId, user.id);
   }
 }

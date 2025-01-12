@@ -29,6 +29,8 @@ export interface PaginateAndSortOptions {
   sortOrder?: 'asc' | 'desc'; // Sorting order
 }
 
+
+//Pagination is not used at the moment
 export const paginateAndSort = async <T>(
   model: any, // Prisma model (e.g., `prisma.room`)
   args: any = {}, // Query arguments (e.g., `where`, `include`)
@@ -37,7 +39,7 @@ export const paginateAndSort = async <T>(
 ): Promise<PaginatedResult<T>> => {
   // Default pagination values
   const page = Math.max(options.page || 1, 1); // Ensure page is at least 1
-  const limit = Math.max(options.limit || 10, 1); // Ensure limit is at least 1
+  const limit = options.limit === 0 ? undefined : Math.max(options.limit || 10, 1);; // Ensure limit is at least 1
   const skip = (page - 1) * limit;
 
   // Sorting logic
@@ -54,7 +56,7 @@ export const paginateAndSort = async <T>(
       ...args,
       take: limit,
       skip,
-      orderBy: { [sortField]: sortOrder },
+      orderBy: { [sortField || "createdAt"]: sortOrder },
     }),
   ]);
 
