@@ -6,7 +6,7 @@ import { AdminJwt } from 'src/auth/guard';
 import { QueryEventDto } from './dto/query-event.dto';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
-import { EventService } from './event.service';
+import { EventsService } from './event.service';
 
 
 
@@ -17,7 +17,7 @@ import { EventService } from './event.service';
 @ApiBearerAuth()
 @Controller('event')
 export class EventController {
-  constructor(private readonly eventService: EventService) {}
+  constructor(private readonly eventService: EventsService) {}
 
   @Get()
   @ApiOperation({ summary: 'Retrieve a list of events with filtering, sorting, and pagination' })
