@@ -20,8 +20,8 @@ export class StoreService {
         select: {
           id:true,
           name: true,
-          imageUrl: true, // Assuming `imageUrl` is a column in the `store` table
-          bannerUrl:true,
+          image: true, // Assuming `imageUrl` is a column in the `store` table
+          banner:true,
           description: true, // Assuming `description` is a column in the `store` table
           cityId: true, // Fetch the cityId to validate
         },
@@ -56,8 +56,8 @@ export class StoreService {
       // Step 5: Return the store details along with the products
       return {
         storeName: store.name,
-        imageUrl: store.imageUrl,
-        bannerUrl: store.bannerUrl,
+        image: store.image,
+        banner: store.banner,
         description: store.description,
         products: products,
       };
