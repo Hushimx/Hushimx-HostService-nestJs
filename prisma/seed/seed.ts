@@ -197,8 +197,8 @@ async function main() {
           const store = await prisma.store.create({
             data: {
             name: 'المطعم',
-          imageUrl:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS_jKH2r-IgzYjNhQO0afH9khpSkpNIV2LnmA&s",
-          bannerUrl:"https://www.albaik.com/assets/hero/home_hero_new_1400-d5bb20bf4a5a8eaa19d22379497bd57b11272c75d0efab0f86dd34248072a596.jpg",
+          image:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS_jKH2r-IgzYjNhQO0afH9khpSkpNIV2LnmA&s",
+          banner:"https://www.albaik.com/assets/hero/home_hero_new_1400-d5bb20bf4a5a8eaa19d22379497bd57b11272c75d0efab0f86dd34248072a596.jpg",
           sectionId: 1,
           vendorId: vendor.id,
           cityId: vendor.cityId,
