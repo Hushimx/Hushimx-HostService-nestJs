@@ -1,5 +1,5 @@
 // clients.service.ts
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { RolePermissionService } from 'src/auth/role-permission-service/role-permission-service.service';
 import { Permission, Role } from 'src/auth/role-permission-service/rolesData';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -24,13 +24,26 @@ export class ClientsService {
       throw new NotFoundException('Country not found.');
     }
 
-    return this.prisma.client.create({
-      data: {
-        name: createClientDto.name,
-        phoneNo: createClientDto.phoneNo,
-        countryCode: country.code,
-      },
-    });
+    try{
+      const client = await this.prisma.client.create({
+        data: {
+          name: createClientDto.name,
+          phoneNo: createClientDto.phoneNo,
+          countryCode: country.code,
+        },
+      });
+      return client;
+    }catch (error) {
+      if (error.code === 'P2002') { // Prisma's unique constraint error code
+        throw new ConflictException(
+         {
+            code: 'CLIENT_ALREADY_EXISTS',
+            message: 'A client with this phone number already exists.',
+          }
+        );
+      }
+      throw error; // Rethrow other unexpected errors
+    }
   }
 
   async findAll(userRole: Role, userCountryId: number, query: QueryClientDto) {
@@ -89,16 +102,29 @@ export class ClientsService {
       throw new NotFoundException('Client not found or access denied.');
     }
 
-    return this.prisma.client.update({
-      where: { id },
-      data: {
-        name: updateClientDto.name,
-        phoneNo: updateClientDto.phoneNo,
-        countryCode: updateClientDto.countryId
-          ? (await this.prisma.country.findUnique({ where: { id: updateClientDto.countryId } })).code
-          : client.countryCode,
-      },
-    });
+    try {
+      const updatedClient = await this.prisma.client.update({
+        where: { id },
+        data: {
+          name: updateClientDto.name,
+          phoneNo: updateClientDto.phoneNo,
+          countryCode: updateClientDto.countryId
+            ? (await this.prisma.country.findUnique({ where: { id: updateClientDto.countryId } })).code
+            : client.countryCode,
+        },
+      });
+      return updatedClient;
+    } catch (error) {
+      if (error.code === 'P2002') { // Prisma's unique constraint error code
+        throw new ConflictException(
+         {
+            code: 'CLIENT_ALREADY_EXISTS',
+            message: 'A client with this phone number already exists.',
+          }
+        );
+      }
+      throw error; // Rethrow other unexpected errors
+    }
   }
 
   async remove(id: number, userRole: Role, userCountryId: number) {

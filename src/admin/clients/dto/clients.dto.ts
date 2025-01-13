@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsNotEmpty, IsInt, IsPhoneNumber } from 'class-validator';
+import { IsOptional, IsString, IsNotEmpty, IsInt, IsPhoneNumber,IsMobilePhone } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { Query } from '@nestjs/common';
@@ -10,7 +10,7 @@ export class CreateClientDto {
   name?: string;
 
   @ApiProperty({ description: 'Phone number of the client', example: '+1234567890' })
-  @IsPhoneNumber(null)
+  @IsMobilePhone()
   @IsNotEmpty()
   phoneNo: string;
 
@@ -27,7 +27,7 @@ export class UpdateClientDto {
   name?: string;
 
   @ApiPropertyOptional({ description: 'Phone number of the client', required: false, example: '+1234567890' })
-  @IsPhoneNumber(null)
+  @IsMobilePhone()
   @IsOptional()
   phoneNo?: string;
 

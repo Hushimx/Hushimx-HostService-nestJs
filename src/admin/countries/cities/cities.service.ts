@@ -1,9 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { RolePermissionService } from 'src/auth/role-permission-service/role-permission-service.service';
 import { Permission, Role } from 'src/auth/role-permission-service/rolesData';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { paginateAndSort } from 'src/utils/pagination';
 import { CreateCityDto, UpdateCityDto, QueryCityDto } from 'src/admin/dto/cities.dto';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class CitiesService {
@@ -16,12 +17,28 @@ export class CitiesService {
     this.rolePermissionService.enforcePermission(userRole, Permission.CREATE_ADMINS);
 
     if (!this.rolePermissionService.hasPermission(userRole, Permission.ACCESS_ALL_CITIES) && countryId !== userCountryId) {
-      throw new NotFoundException('You do not have permission to create cities in this country.');
+      throw new ForbiddenException('You do not have permission to create cities in this country.');
     }
+    
+    console.log("111")
 
-    return this.prisma.city.create({
-      data: { ...createCityDto, countryId },
-    });
+
+    try {
+      const createdClient = await this.prisma.city.create({
+        data: { ...createCityDto, countryId },
+      });
+      return createdClient
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw new ConflictException({
+          code: 'CITY_ALREADY_EXISTS',
+          message: 'A city with this name already exists in this country.',
+        });
+      }else{
+              throw error;
+
+      }
+    }
   }
 
   async findAll(
@@ -67,7 +84,7 @@ export class CitiesService {
     this.rolePermissionService.enforcePermission(userRole, Permission.VIEW_CITIES);
 
     const city = await this.prisma.city.findUnique({
-      where: { id },
+      where: { id,countryId },
       include: { country: true },
     });
 
@@ -89,10 +106,20 @@ export class CitiesService {
       throw new NotFoundException('City not found or access denied.');
     }
 
-    return this.prisma.city.update({
-      where: { id },
-      data: updateCityDto,
-    });
+    try {
+      const city = await this.prisma.city.update({
+        where: { id },
+        data: updateCityDto,
+      });
+      return city
+    } catch (error) {
+      if (error.code === 'P2002') {
+        throw new ConflictException({
+          code: 'CITY_ALREADY_EXISTS',
+          message: 'A city with this name already exists in this country.',
+        });      }
+      throw error;
+    }
   }
 
   async remove(id: number, userRole: Role, userCountryId: number) {

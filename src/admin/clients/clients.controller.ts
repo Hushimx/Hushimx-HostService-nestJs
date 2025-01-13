@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, UseGuards, Query, ValidationPipe } from '@nestjs/common';
 import { ClientsService } from './clients.service';
 import { GetUser } from 'src/auth/decorator';
 import { CreateClientDto, UpdateClientDto, QueryClientDto } from './dto/clients.dto';
@@ -25,7 +25,7 @@ export class ClientsController {
                   they remain restricted to their assigned country.`
   })
   @Get()
-  findAll(@GetUser() user, @Body() findDto: QueryClientDto) {
+  findAll(@GetUser() user, @Query(new ValidationPipe({ transform: true, whitelist: true, })) findDto: QueryClientDto) {
     return this.clientsService.findAll(user.role, user.countryId, findDto);
   }
 

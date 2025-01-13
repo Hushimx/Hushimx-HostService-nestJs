@@ -45,7 +45,7 @@ export class CitiesService {
 
 
     try {
-      return await this.prisma.cityServiceVendor.create({
+      const CityService = await this.prisma.cityServiceVendor.create({
         data: {
           serviceId: service.id,
           vendorId: dto.vendorId,
@@ -54,6 +54,7 @@ export class CitiesService {
           description_ar: dto.description_ar,
         },
       });
+      return CityService
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError && error.code === 'P2002') {
         throw new ConflictException({
@@ -149,7 +150,7 @@ export class CitiesService {
       CityService.city.countryId,
     );
     try {
-      return await this.prisma.cityServiceVendor.update({
+      const CityServiceRecord = await this.prisma.cityServiceVendor.update({
         where: { id },
         data: {
           vendorId: dto.vendorId,
@@ -158,6 +159,7 @@ export class CitiesService {
           description_ar: dto.description_ar || CityService.description_ar,
         },
       });
+      return CityServiceRecord;
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError && error.code === 'P2002') {
         throw new ConflictException({

@@ -7,12 +7,14 @@ import { QueryEventDto } from './dto/query-event.dto';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { buildFilters } from 'src/utils/filters';
+import { PhotoStorageService } from 'src/photo-storage/photo-storage.service';
 
 @Injectable()
 export class EventsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly rolePermissionService: RolePermissionService,
+    private readonly photoStorageService: PhotoStorageService
   ) {}
 
   async getEvents(query: QueryEventDto, userRole: Role, userCountryId?: number) {
@@ -61,7 +63,7 @@ export class EventsService {
     return event;
   }
 
-  async createEvent(data: CreateEventDto, userRole: Role, userCountryId?: number) {
+  async createEvent(data: CreateEventDto, userRole: Role, userCountryId?: number,file?: Express.Multer.File,) {
     this.rolePermissionService.enforcePermission(userRole, Permission.MANAGE_EVENTS);
 
     const city = await this.prisma.city.findUnique({
@@ -79,6 +81,8 @@ export class EventsService {
       userCountryId,
       city.country.id,
     );
+    const photoPath = file ? await this.photoStorageService.savePhoto(file, 'events') : null;
+
 
     return this.prisma.event.create({
       data: {
@@ -88,6 +92,7 @@ export class EventsService {
         address: data.address,
         locationUrl: data.locationUrl,
         cityId: data.cityId,
+        image: photoPath
       },
     });
   }
@@ -96,7 +101,8 @@ export class EventsService {
     eventId: number,
     data: UpdateEventDto,
     userRole: Role,
-    userCountryId?: number,
+    userCountryId: number,
+    file: Express.Multer.File
   ) {
     this.rolePermissionService.enforcePermission(userRole, Permission.MANAGE_EVENTS);
 
@@ -116,9 +122,20 @@ export class EventsService {
       event.city.country.id,
     );
 
+    let imagePath = event.image;
+    if (file) {
+      const newPhotoPath = await this.photoStorageService.savePhoto(file, 'products');
+      if (imagePath) this.photoStorageService.deletePhoto(imagePath);
+      imagePath = newPhotoPath;
+    }
+
+
     return this.prisma.event.update({
       where: { id: eventId },
-      data,
+      data:{
+        ...data,
+        image: imagePath
+      }
     });
   }
 

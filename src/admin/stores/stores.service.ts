@@ -32,8 +32,8 @@ export class StoresService {
 
     this.rolePermissionService.enforceManageInCountry(userRole, Permission.CREATE_STORES, userCountryId, city.countryId);
 
-    const imageUrl = imageFile ? await this.photoStorageService.savePhoto(imageFile, 'stores') : null;
-    const bannerUrl = bannerFile ? await this.photoStorageService.savePhoto(bannerFile, 'stores') : null;
+    const image = imageFile ? await this.photoStorageService.savePhoto(imageFile, 'stores') : null;
+    const banner = bannerFile ? await this.photoStorageService.savePhoto(bannerFile, 'stores') : null;
     return this.prisma.store.create({
       data: {
         name: createStoreDto.name,
@@ -41,8 +41,8 @@ export class StoresService {
         cityId: createStoreDto.cityId,
         sectionId: 1,
         vendorId: 1,
-        imageUrl,
-        bannerUrl
+        image,
+        banner
 
      },
       select: this.getStoreSelect(),
@@ -65,36 +65,36 @@ export class StoresService {
     const store = await this.getStoreWithCountry(storeId);
     this.rolePermissionService.enforceManageInCountry(userRole, Permission.EDIT_STORES, userCountryId, store.city.countryId);
 
-    let { imageUrl, bannerUrl } = store;
+    let { image, banner } = store;
     if (imageFile) {
-      const newImageUrl = await this.photoStorageService.savePhoto(imageFile, 'stores');
-      if (imageUrl) {
+      const newimage = await this.photoStorageService.savePhoto(imageFile, 'stores');
+      if (image) {
         try {
-          this.photoStorageService.deletePhoto(imageUrl);
+          this.photoStorageService.deletePhoto(image);
         } catch (error) {
           console.error('Error deleting old image:', error);
         }
       }
-      imageUrl = newImageUrl;
+      image = newimage;
     }
     if (bannerFile) {
-      const newBannerUrl = await this.photoStorageService.savePhoto(bannerFile, 'stores');
-      if (bannerUrl) {
+      const newbanner = await this.photoStorageService.savePhoto(bannerFile, 'stores');
+      if (banner) {
         try {
-          this.photoStorageService.deletePhoto(bannerUrl);
+          this.photoStorageService.deletePhoto(banner);
         } catch (error) {
           console.error('Error deleting old banner:', error);
         }
       }
-      bannerUrl = newBannerUrl;
+      banner = newbanner;
     }
 
     return this.prisma.store.update({
       where: { id: storeId },
       data: {
         ...updateStoreDto,
-        imageUrl,
-        bannerUrl,
+        image,
+        banner,
       },
       select: this.getStoreSelect(),
     });
@@ -109,16 +109,16 @@ export class StoresService {
     this.rolePermissionService.enforcePermission(userRole, Permission.DELETE_STORES);
     this.rolePermissionService.enforceManageInCountry(userRole, Permission.DELETE_STORES, userCountryId, store.city.countryId);
 
-    if (store.imageUrl) {
+    if (store.image) {
       try {
-        this.photoStorageService.deletePhoto(store.imageUrl);
+        this.photoStorageService.deletePhoto(store.image);
       } catch (error) {
         console.error('Error deleting old image:', error);
       }
     }
-    if (store.bannerUrl) {
+    if (store.banner) {
       try {
-        this.photoStorageService.deletePhoto(store.bannerUrl);
+        this.photoStorageService.deletePhoto(store.banner);
       } catch (error) {
         console.error('Error deleting old banner:', error);
       }
@@ -186,8 +186,8 @@ export class StoresService {
       id: true,
       name: true,
       description: true,
-      imageUrl: true,
-      bannerUrl: true,
+      image: true,
+      banner: true,
       city: { select: { id: true, name: true } },
       vendor: { select: { id: true, name: true } },
       section: { select: { id: true, name: true } }

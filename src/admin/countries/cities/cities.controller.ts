@@ -1,5 +1,5 @@
 // cities.controller.ts
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, UseGuards, Query, ValidationPipe } from '@nestjs/common';
 import { CitiesService } from './cities.service';
 import { GetUser } from 'src/auth/decorator';
 import { CreateCityDto, UpdateCityDto,  QueryCityDto } from 'src/admin/dto/cities.dto';
@@ -26,7 +26,7 @@ export class CitiesController {
                   they remain restricted to their assigned country.`
   })
   @Get()
-  findAll(@Param('countryId', ParseIntPipe) countryId: number, @GetUser() user, @Body() findDto: QueryCityDto) {
+  findAll(@Param('countryId', ParseIntPipe) countryId: number, @GetUser() user, @Query(new ValidationPipe({ transform: true, whitelist: true, })) findDto: QueryCityDto) {
     return this.citiesService.findAll(countryId, user.role, user.countryId, findDto);
   }
 

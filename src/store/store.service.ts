@@ -15,9 +15,8 @@ export class StoreService {
 
   
     async getStoreDetailsById(storeUUID: string, userCityId: number) {
-      // Step 1: Fetch the store by its UUID
       const store = await this.prisma.store.findUnique({
-        where: { uuid: storeUUID },
+        where: { uuid: storeUUID,cityId:userCityId },
         select: {
           id:true,
           name: true,
@@ -68,7 +67,7 @@ export class StoreService {
   async getProductById(storeSlug: string, productId: number) {
     // Ensure the store exists
     const store = await this.prisma.store.findUnique({
-      where: { uuid: storeSlug },
+      where: { uuid: storeSlug, },
       select: { id: true, name: true },
     });
 

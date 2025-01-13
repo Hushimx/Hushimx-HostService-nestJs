@@ -98,14 +98,17 @@ model Event {
   updatedAt  DateTime @updatedAt
 
   title String
+  title_ar String?
   
   description String?
   description_ar String?
 
   address String
   locationUrl String?
-
+  image String?
   cityId Int
+
+
 
 
   city       City      @relation(fields: [cityId], references: [id])
@@ -176,13 +179,13 @@ model CityServiceVendor {
   description  String?
   description_ar  String? 
   serviceId Int
-  vendorId  Int
+  vendorId  Int?
   cityId    Int
 
 
-  service   Service  @relation(fields: [serviceId], references: [id])
-  vendor    Vendor   @relation(fields: [vendorId], references: [id])
-  city      City     @relation(fields: [cityId], references: [id])
+  service   Service  @relation(fields: [serviceId], references: [id],onDelete: Cascade)
+  vendor    Vendor?   @relation(fields: [vendorId], references: [id],onDelete: SetDefault)
+  city      City     @relation(fields: [cityId], references: [id],onDelete: Cascade)
 
   @@unique([serviceId, cityId])  // Ensures each service has only one vendor per city
   @@map("city_service_vendors")
@@ -277,8 +280,8 @@ model Store {
 
   name      String  
 
-  imageUrl  String?
-  bannerUrl String?
+  image  String?
+  banner String?
 
   description String?
   sectionId      Int?

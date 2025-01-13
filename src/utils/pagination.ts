@@ -1,15 +1,15 @@
-export function buildPagination(limit: number, offset: number): { skip: number; take: number } {
-  // Ensure limit is between 1 and 100
-  const validLimit = Math.min(Math.max(limit, 1), 100);
+// export function buildPagination(limit: number, offset: number): { skip: number; take: number } {
+//   // Ensure limit is between 1 and 100
+//   const validLimit = Math.min(Math.max(limit, 1), 100);
 
-  // Ensure offset is 1 or greater (offset = 1 means the first page)
-  const validOffset = Math.max(offset, 1);
+//   // Ensure offset is 1 or greater (offset = 1 means the first page)
+//   const validOffset = Math.max(offset, 1);
 
-  return {
-    skip: (validOffset - 1) * validLimit,
-    take: validLimit,
-  };
-}
+//   return {
+//     skip: (validOffset - 1) * validLimit,
+//     take: validLimit,
+//   };
+// }
 export interface PaginatedResult<T> {
   data: T[];
   meta: {
@@ -39,8 +39,8 @@ export const paginateAndSort = async <T>(
 ): Promise<PaginatedResult<T>> => {
   // Default pagination values
   const page = Math.max(options.page || 1, 1); // Ensure page is at least 1
-  const limit = options.limit === 0 ? undefined : Math.max(options.limit || 10, 1);; // Ensure limit is at least 1
-  const skip = (page - 1) * limit;
+  const limit = !options.limit  ? undefined : Math.max(options.limit || 10, 1);; // Ensure limit is at least 1
+  const skip = limit ? (page - 1) * limit : undefined;
 
   // Sorting logic
   const sortField = options.sortField && allowedSortFields.includes(options.sortField)

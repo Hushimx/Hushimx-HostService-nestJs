@@ -17,7 +17,7 @@ export class PhotoStorageService {
   }
 
   async savePhoto(file: Express.Multer.File, subDir: string): Promise<string> {
-    const uploadDir = join(this.baseUploadDir, subDir);
+    const uploadDir = join('src',this.baseUploadDir, subDir);
 
     if (!existsSync(uploadDir)) {
       mkdirSync(uploadDir, { recursive: true });
@@ -44,7 +44,7 @@ export class PhotoStorageService {
     deletePhoto(photoPath: string): void {
     // Normalize and resolve the full path
     const normalizedPhotoPath = photoPath.startsWith('/') ? photoPath.slice(1) : photoPath;
-    const fullPath = resolve(join('./uploads', normalizedPhotoPath));
+    const fullPath = resolve(join('src','./uploads', normalizedPhotoPath));
   
     // Check and delete the file
     if (existsSync(fullPath)) {

@@ -4,14 +4,7 @@ import { Type } from 'class-transformer';
 import { PaginationAndSortingDto } from './pagination.dto';
 
 export class QueryCityDto extends PaginationAndSortingDto {
-  @ApiPropertyOptional({
-    description: 'Filter by country ID',
-    example: 1,
-  })
-  @IsOptional()
-  @IsInt()
-  @Type(() => Number)
-  country?: number;
+
 
   @ApiPropertyOptional({
     description: 'Filter by city name',
@@ -28,10 +21,7 @@ export class CreateCityDto {
   @IsNotEmpty()
   name: string;
 
-  @ApiProperty({ description: 'Country ID to which the city belongs' })
-  @IsInt()
-  @Type(() => Number)
-  countryId: number;
+
 }
 
 export class UpdateCityDto {
@@ -40,9 +30,5 @@ export class UpdateCityDto {
   @IsOptional()
   name?: string;
 
-  @ApiPropertyOptional({ description: 'Country ID to which the city belongs', required: false })
-  @IsInt()
-  @IsOptional()
-  @Type(() => Number)
-  countryId?: number;
+
 }

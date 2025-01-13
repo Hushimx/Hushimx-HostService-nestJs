@@ -1,4 +1,4 @@
-import { Injectable, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, ForbiddenException, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { QueryRoomsDto, CreateRoomDto, EditRoomDto } from 'src/admin/dto/rooms.dto';
 import { paginateAndSort, PaginatedResult } from 'src/utils/pagination';
@@ -121,13 +121,17 @@ export class RoomsService {
     );
   
     try {
-      return await this.prisma.room.create({
+      const room = await this.prisma.room.create({
         data: { roomNumber: dto.roomNumber, type: dto.type, hotelId },
       });
+      return room
     } catch (error) {
       if (error.code === 'P2002') { // Prisma's unique constraint error code
-        throw new BadRequestException(
-          `Room number ${dto.roomNumber} already exists for the selected hotel.`,
+        throw new ConflictException(
+         {
+            code: 'ROOM_ALREADY_EXISTS',
+            message: 'A room with this number already exists in this hotel.',
+          }
         );
       }
       throw error; // Rethrow other unexpected errors
@@ -159,11 +163,24 @@ export class RoomsService {
       userCountryId,
       room.hotel.city.countryId,
     );
+    try{
+      const room = await this.prisma.room.update({
+        where: { id: roomId },
+        data: { roomNumber: dto.roomNumber, type: dto.type },
+      });
+      return room
+    } catch (error) {
+      if (error.code === 'P2002') { // Prisma's unique constraint error code
+        throw new ConflictException(
+         {
+            code: 'ROOM_ALREADY_EXISTS',
+            message: 'A room with this number already exists in this hotel.',
+          }
+        );
+      }
+      throw error; // Rethrow other unexpected errors
+    }
 
-    return this.prisma.room.update({
-      where: { id: roomId },
-      data: { roomNumber: dto.roomNumber, type: dto.type },
-    });
   }
 
   async deleteRoom(

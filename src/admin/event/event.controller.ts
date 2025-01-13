@@ -1,12 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, ValidationPipe, UseGuards, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, ValidationPipe, UseGuards, ParseIntPipe, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { Admin } from '@prisma/client';
 import { GetUser } from 'src/auth/decorator';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags,ApiConsumes } from '@nestjs/swagger';
 import { AdminJwt } from 'src/auth/guard';
 import { QueryEventDto } from './dto/query-event.dto';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { EventsService } from './event.service';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 
 
@@ -15,6 +16,7 @@ import { EventsService } from './event.service';
 @Controller('admin/events')
 @UseGuards(AdminJwt)
 @ApiBearerAuth()
+
 @Controller('event')
 export class EventController {
   constructor(private readonly eventService: EventsService) {}
@@ -36,18 +38,26 @@ export class EventController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new event' })
-  async createEvent(@Body() dto: CreateEventDto, @GetUser() user) {
-    return this.eventService.createEvent(dto, user.role, user.countryId);
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('image'))
+
+  async createEvent(@Body() dto: CreateEventDto, @GetUser() user,@UploadedFile() file?: Express.Multer.File,
+) {
+    return this.eventService.createEvent(dto, user.role, user.countryId,file);
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Edit an existing event' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('image'))
+
   async editEvent(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateEventDto,
     @GetUser() user,
+    @UploadedFile() file?: Express.Multer.File,
   ) {
-    return this.eventService.editEvent(id, dto, user.role, user.countryId);
+    return this.eventService.editEvent(id, dto, user.role, user.countryId,file);
   }
 
   @Delete(':id')
