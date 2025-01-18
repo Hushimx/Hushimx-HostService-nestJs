@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { paginateAndSort } from 'src/utils/pagination';
-import { Role, Permission } from 'src/auth/role-permission-service/rolesData';
-import { RolePermissionService } from 'src/auth/role-permission-service/role-permission-service.service';
+import { Role, Permission } from 'src/admin/auth/role-permission-service/rolesData';
+import { RolePermissionService } from 'src/admin/auth/role-permission-service/role-permission-service.service';
 import { QueryEventDto } from './dto/query-event.dto';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';

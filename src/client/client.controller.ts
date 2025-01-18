@@ -3,9 +3,8 @@ import { Controller, Post, Body, Res, Get, Req, UseGuards, UnauthorizedException
 import { ClientService } from './client.service';
 import { ClientLoginDto,checkRoomAvailability } from './dto';
 import { Response, Request } from 'express';
-import { ClientJwt } from 'src/auth/guard/clientJwt.guard';
-import { GetUser } from 'src/auth/decorator';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody, ApiUnauthorizedResponse, ApiParam } from '@nestjs/swagger';
+import { ClientJwt } from 'src/client/guard/clientJwt.guard';
+import { GetUser } from 'src/decorator/get-user.decorator';import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody, ApiUnauthorizedResponse, ApiParam } from '@nestjs/swagger';
 
 @ApiTags('Client Authentication') // Groups endpoints under "Client Authentication"
 @Controller('client')

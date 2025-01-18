@@ -17,10 +17,9 @@ import {
 import { StoresService } from './stores.service';
 import { CreateStoreDto, UpdateStoreDto, QueryStoreDto } from '../dto/stores.dto';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes, ApiParam, ApiResponse, ApiBody } from '@nestjs/swagger';
-import { GetUser } from 'src/auth/decorator';
-import { AdminJwt } from 'src/auth/guard';
+import { GetUser } from 'src/decorator/get-user.decorator';import { AdminJwt } from 'src/admin/auth/guard';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
-import { DefaultApiErrors } from '../decorator';
+import { DefaultApiErrors } from '../../decorator';
 import { Role } from '@prisma/client';
 
 @ApiTags('Stores')

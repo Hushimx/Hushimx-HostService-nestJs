@@ -1,7 +1,7 @@
 import { IsNotEmpty, IsOptional, IsEnum, IsString, IsInt, IsNumber } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { ServiceOrderStatus } from '@prisma/client';
-import { PaginationAndSortingDto } from './pagination.dto';
+import { PaginationAndSortingDto } from '../../dto/pagination.dto';
 import { Type } from 'class-transformer';
 
 export class QueryServiceOrdersDto extends PaginationAndSortingDto {

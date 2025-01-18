@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { HotelsService } from './hotels.service';
 import { PrismaService } from '../../prisma/prisma.service';
-import { RolePermissionService } from 'src/auth/role-permission-service/role-permission-service.service';
+import { RolePermissionService } from 'src/admin/auth/role-permission-service/role-permission-service.service';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
-import { Role } from 'src/auth/role-permission-service/rolesData';
+import { Role } from 'src/admin/auth/role-permission-service/rolesData';
 
 describe('HotelsService', () => {
   let service: HotelsService;

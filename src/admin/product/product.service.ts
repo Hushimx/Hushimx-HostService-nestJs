@@ -2,8 +2,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { PhotoStorageService } from 'src/photo-storage/photo-storage.service';
 import { CreateProductDto, UpdateProductDto, QueryProductDto } from '../dto/products.dto';
-import { RolePermissionService } from 'src/auth/role-permission-service/role-permission-service.service';
-import { Permission, Role } from 'src/auth/role-permission-service/rolesData';
+import { RolePermissionService } from 'src/admin/auth/role-permission-service/role-permission-service.service';
+import { Permission, Role } from 'src/admin/auth/role-permission-service/rolesData';
 import { paginateAndSort } from 'src/utils/pagination';
 import { buildFilters } from 'src/utils/filters';
 
@@ -34,7 +34,7 @@ export class ProductService {
 
     // Handle optional photo upload
     const photoPath = file ? await this.photoStorageService.savePhoto(file, 'products') : null;
-    delete createProductDto.photo
+    delete createProductDto.image
     // Create product
     return this.prisma.product.create({
       data: {

@@ -10,7 +10,7 @@ import {
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { PaginationAndSortingDto } from './pagination.dto'; // Ensure you import this if using it
+import { PaginationAndSortingDto } from '../../dto/pagination.dto'; // Ensure you import this if using it
 
 // -----------------------------------------------
 // QueryProductDto: For filtering and pagination
@@ -77,7 +77,7 @@ export class CreateProductDto {
     required: false,
   })
   @IsOptional()
-  photo?: Express.Multer.File; // For file uploads
+  image?: Express.Multer.File; // For file uploads
 }
 
 // -----------------------------------------------
@@ -111,5 +111,5 @@ export class UpdateProductDto {
     required: false,
   })
   @IsOptional()
-  photo?: Express.Multer.File; // For file uploads
+  image?: Express.Multer.File; // For file uploads
 }

@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateCategoryDto,UpdateCategoryDto } from '../dto/Categories.dto';
-import { RolePermissionService } from 'src/auth/role-permission-service/role-permission-service.service'; // Adjust path as needed
-import { Role, Permission } from 'src/auth/role-permission-service/rolesData'; // Adjust path as needed
+import { RolePermissionService } from 'src/admin/auth/role-permission-service/role-permission-service.service'; // Adjust path as needed
+import { Role, Permission } from 'src/admin/auth/role-permission-service/rolesData'; // Adjust path as needed
 
 @Injectable()
 export class CategoriesService {

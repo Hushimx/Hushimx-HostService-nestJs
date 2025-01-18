@@ -5,7 +5,6 @@ import { PrismaService } from '../prisma/prisma.service';
 import { UUID } from 'crypto';
 import { ClientLoginDto } from './dto';
 import { response, Response } from 'express';
-import { GetUser } from 'src/auth/decorator';
 
 @Injectable()
 export class ClientService {
@@ -31,6 +30,7 @@ export class ClientService {
     }
   
     async login(dto: ClientLoginDto): Promise<{ message: string; token: string }> {
+       console.log(dto)
       // Step 1: Validate Room by UUID
       const room = await this.prisma.room.findUnique({
         where: {
@@ -61,7 +61,7 @@ export class ClientService {
           phoneNo: dto.phoneNumber,
         },
       });
-    
+      console.log(dto.phoneNumber)
       if (!client) {
         // Create new client if not found
         client = await this.prisma.client.create({
@@ -76,9 +76,9 @@ export class ClientService {
       const payload = {
         clientId: client.id,
         roomId: room.id,
-        // roomNumber: room.roomNumber,
-        // HotelId: room.hotelId,
-        // cityId: room.hotel.cityId,
+        roomNumber: room.roomNumber,
+        HotelId: room.hotelId,
+        cityId: room.hotel.cityId,
       };
     
       // Step 4: Generate JWT Token

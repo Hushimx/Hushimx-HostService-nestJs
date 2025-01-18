@@ -1,4 +1,4 @@
-import { IsUUID, IsString } from 'class-validator';
+import { IsUUID, IsString, IsMobilePhone, IsNotEmpty } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { UUID } from 'node:crypto';
 
@@ -25,5 +25,7 @@ export class ClientLoginDto {
     description: 'The Phone number of the client, Make sure to include the country code and number shouldn not start with zero.',
     example: '966596000912',
   })
+  @IsNotEmpty()
+  @IsMobilePhone()
   phoneNumber: string;
 }

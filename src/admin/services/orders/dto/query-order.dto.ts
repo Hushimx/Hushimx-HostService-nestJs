@@ -2,7 +2,7 @@ import {IsOptional, IsEnum,  IsInt } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { ServiceOrderStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
-import { PaginationAndSortingDto } from 'src/admin/dto/pagination.dto';
+import { PaginationAndSortingDto } from 'src/dto/pagination.dto';
 
 
 

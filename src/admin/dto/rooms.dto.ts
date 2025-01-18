@@ -2,7 +2,7 @@ import { IsNotEmpty, IsString, IsInt,Min, IsUUID,IsEnum, IsOptional } from 'clas
 import { Type } from 'class-transformer';
 
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { PaginationAndSortingDto } from './pagination.dto';
+import { PaginationAndSortingDto } from '../../dto/pagination.dto';
 
 
 export class QueryRoomsDto extends PaginationAndSortingDto {

@@ -1,5 +1,5 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
-import { existsSync, mkdirSync, unlinkSync } from 'fs';
+import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { createReadStream, existsSync, mkdirSync, unlinkSync } from 'fs';
 import { join, extname, normalize, resolve } from 'path';
 import * as sharp from 'sharp';
 
@@ -16,8 +16,48 @@ export class PhotoStorageService {
     }
   }
 
+  getPhotoStream(photoPath: string): { stream: NodeJS.ReadableStream; mimeType: string } {
+    // Normalize and sanitize the path to prevent path traversal attacks
+    const sanitizedPath = normalize(photoPath).replace(/^(\.\.[\/\\])+/, '');
+    const fullPath = resolve(this.baseUploadDir, sanitizedPath);
+
+    // Ensure the requested file is within the allowed base directory
+    if (!fullPath.startsWith(resolve(this.baseUploadDir))) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    // Check if the file exists
+    if (!existsSync(fullPath)) {
+      throw new NotFoundException('Photo not found');
+    }
+
+    const mimeType = this.getMimeType(fullPath);
+
+    return {
+      stream: createReadStream(fullPath),
+      mimeType,
+    };
+  }
+
+  private getMimeType(filePath: string): string {
+    const ext = filePath.split('.').pop()?.toLowerCase();
+    switch (ext) {
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      case 'gif':
+        return 'image/gif';
+      case 'webp':
+        return 'image/webp';
+      default:
+        throw new NotFoundException('Unsupported file format');
+    }
+  }
+
   async savePhoto(file: Express.Multer.File, subDir: string): Promise<string> {
-    const uploadDir = join('src',this.baseUploadDir, subDir);
+    const uploadDir = join(this.baseUploadDir, subDir);
 
     if (!existsSync(uploadDir)) {
       mkdirSync(uploadDir, { recursive: true });
@@ -44,7 +84,7 @@ export class PhotoStorageService {
     deletePhoto(photoPath: string): void {
     // Normalize and resolve the full path
     const normalizedPhotoPath = photoPath.startsWith('/') ? photoPath.slice(1) : photoPath;
-    const fullPath = resolve(join('src','./uploads', normalizedPhotoPath));
+    const fullPath = resolve(join('./uploads', normalizedPhotoPath));
   
     // Check and delete the file
     if (existsSync(fullPath)) {

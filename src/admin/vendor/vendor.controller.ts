@@ -15,7 +15,7 @@ import {
 import { VendorService } from './vendor.service';
 import { CreateVendorDto, QueryVendorDto, UpdateVendorDto } from 'src/admin/dto/vendor.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { AdminJwt } from 'src/auth/guard';
+import { AdminJwt } from 'src/admin/auth/guard';
 
 @ApiTags('Vendors')
 @Controller('admin/vendors')

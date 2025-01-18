@@ -2,7 +2,7 @@
 import { IsOptional, IsString,IsNotEmpty, IsEnum, IsInt, Min } from 'class-validator';
 import { Transform,Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
-import { PaginationAndSortingDto } from './pagination.dto';
+import { PaginationAndSortingDto } from '../../dto/pagination.dto';
 
 export class QueryHotelsDto extends PaginationAndSortingDto {
   @ApiProperty({ description: 'Filter by hotel name', required: false, example: 'Hotel Paradise' })

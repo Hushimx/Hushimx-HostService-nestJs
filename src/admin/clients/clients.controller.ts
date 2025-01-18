@@ -1,9 +1,9 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, UseGuards, Query, ValidationPipe } from '@nestjs/common';
 import { ClientsService } from './clients.service';
-import { GetUser } from 'src/auth/decorator';
 import { CreateClientDto, UpdateClientDto, QueryClientDto } from './dto/clients.dto';
 import { ApiOperation } from '@nestjs/swagger';
-import { AdminJwt } from 'src/auth/guard';
+import { AdminJwt } from 'src/admin/auth/guard';
+import { GetUser } from 'src/decorator/get-user.decorator';
 
 @UseGuards(AdminJwt)
 @Controller('admin/clients')

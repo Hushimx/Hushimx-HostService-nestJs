@@ -1,10 +1,10 @@
 import { Controller, Get, Post, Patch, Delete, Body, Query, Param, UseGuards, ForbiddenException, ParseIntPipe, ValidationPipe } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { CreateAdminDto, EditAdminDto, GetAdminsQueryDto } from 'src/admin/dto/admin.dto';
-import { GetUser } from 'src/auth/decorator';
+import { GetUser } from 'src/decorator/get-user.decorator';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
-import { AdminJwt } from 'src/auth/guard';
-import { DefaultApiErrors } from '../decorator';
+import { AdminJwt } from 'src/admin/auth/guard';
+import { DefaultApiErrors } from '../../decorator';
 import { Admin } from 'types/admin';
 
 @ApiTags('Admins')

@@ -3,7 +3,7 @@ import { Type } from 'class-transformer';
 
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
-import { PaginationAndSortingDto } from './pagination.dto';
+import { PaginationAndSortingDto } from '../../dto/pagination.dto';
 
 export class GetAdminsQueryDto extends PaginationAndSortingDto {
   @ApiProperty({ description: 'Email of the admin', example: 'admin@example.com' })

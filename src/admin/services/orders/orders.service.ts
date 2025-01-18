@@ -5,23 +5,22 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { paginateAndSort } from 'src/utils/pagination';
-import { RolePermissionService } from 'src/auth/role-permission-service/role-permission-service.service';
-import { Permission, Role } from 'src/auth/role-permission-service/rolesData';
+import { RolePermissionService } from 'src/admin/auth/role-permission-service/role-permission-service.service';
+import { Permission, Role } from 'src/admin/auth/role-permission-service/rolesData';
 import { ServiceOrderStatus } from '@prisma/client';
 import { buildFilters } from 'src/utils/filters';
-import { TestService } from 'src/test/test.service';
 import { QueryServiceOrdersDto } from './dto/query-order.dto';
 import { UpdateServiceOrderDto } from './dto/update-order.dto';
+import { WwebjsService } from 'src/wwebjs/wwebjs.service';
 
 @Injectable()
 export class ServicesOrdersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly rolePermissionService: RolePermissionService,
-    private readonly whatsAppService: TestService,
+    private readonly whatsAppService: WwebjsService,
   ) {}
 
-  // Find all service orders with filters, pagination, and sorting
   async getServiceOrders(query: QueryServiceOrdersDto, userRole: Role, userCountryId?: number) {
     this.rolePermissionService.enforcePermission(userRole, Permission.VIEW_SERVICE_ORDERS);
 
@@ -32,7 +31,6 @@ export class ServicesOrdersService {
       allowedFields: ['clientName', 'clientNumber', 'hotelName', 'roomNumber'],
     });
 
-    // Pagination and sorting
     const allowedSortFields = ['createdAt', 'updatedAt', 'total'];
     const result = await paginateAndSort(
       this.prisma.serviceOrder,
@@ -44,23 +42,13 @@ export class ServicesOrdersService {
     return result;
   }
 
-  // Find a single service order
   async findOne(orderId: number, userRole: Role) {
     this.rolePermissionService.enforcePermission(userRole, Permission.VIEW_SERVICE_ORDERS);
 
     const serviceOrder = await this.prisma.serviceOrder.findUnique({
       where: { id: orderId },
       include: {
-        vendor: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        client: true,
-        service: true,
-        city: true,
-        room: true,
+        vendor: { select: { id: true, name: true } },
       },
     });
 
@@ -69,22 +57,6 @@ export class ServicesOrdersService {
     return serviceOrder;
   }
 
-  // // Create a new service order
-  // async createServiceOrder(dto: CreateServiceOrderDto, userRole: Role) {
-  //   this.rolePermissionService.enforcePermission(userRole, Permission.CREATE_SERVICE_ORDERS);
-
-  //   const service = await this.prisma.service.findUnique({ where: { id: dto.serviceId } });
-  //   const vendor = await this.prisma.vendor.findUnique({ where: { id: dto.vendorId } });
-
-  //   if (!service) throw new NotFoundException('Service not found.');
-  //   if (!vendor) throw new NotFoundException('Vendor not found.');
-
-  //   return this.prisma.serviceOrder.create({
-  //     data: { ...dto, status: ServiceOrderStatus.PENDING },
-  //   });
-  // }
-
-  // Edit a service order
   async editServiceOrder(orderId: number, dto: UpdateServiceOrderDto, userRole: Role) {
     this.rolePermissionService.enforcePermission(userRole, Permission.EDIT_SERVICE_ORDERS);
 
@@ -95,14 +67,7 @@ export class ServicesOrdersService {
 
     if (!serviceOrder) throw new NotFoundException('Service order not found.');
 
-    if (dto.status === ServiceOrderStatus.PICKUP && !serviceOrder.driverId) {
-      throw new BadRequestException({
-        code: 'DRIVER_REQUIRED',
-        message: 'A driver must be assigned before marking the order as PICKUP.',
-      });
-    }
-
-    if (dto.driverId) {
+    if (dto.driverId && dto.driverId !== serviceOrder.driverId) {
       await this.assignDriver(serviceOrder, dto.driverId);
     }
 
@@ -110,7 +75,7 @@ export class ServicesOrdersService {
 
     const updatedServiceOrder = await this.prisma.serviceOrder.update({
       where: { id: orderId },
-      data: dto,
+      data: { ...dto, driverId: undefined, status: undefined },
     });
 
     if (isStatusChanged) {
@@ -140,21 +105,32 @@ export class ServicesOrdersService {
       });
     }
 
-    await this.prisma.serviceOrder.update({
+    const updatedServiceOrder = await this.prisma.serviceOrder.update({
       where: { id: serviceOrder.id },
-      data: { driverId },
+      data: { driverId, status: ServiceOrderStatus.PICKUP },
+      include: { service: true, city: true },
     });
 
-    const itemsDescription = serviceOrder.service.title;
+    const itemsDescription = updatedServiceOrder.service.description;
 
-    await this.whatsAppService.sendMessage(
-      `${driver.phoneNo}@c.us`,
-      `تم تعيينك لتوصيل الطلب الخدمي برقم ${serviceOrder.id}. الخدمة: ${itemsDescription}\nYou have been assigned to deliver service order ID ${serviceOrder.id}. Service: ${itemsDescription}`,
-    );
+    try {
+      await this.whatsAppService.sendMessage(
+        `${driver.phoneNo}@c.us`,
+        `تم تعيينك لتوصيل الطلب الخدمي برقم ${updatedServiceOrder.id}. الخدمة: ${itemsDescription}\nYou have been assigned to deliver service order ID ${updatedServiceOrder.id}. Service: ${itemsDescription}`,
+      );
+    } catch (error) {
+      console.error(`Failed to send WhatsApp message to driver: ${error.message}`);
+      throw new BadRequestException({
+        code: 'WHATSAPP_DRIVER_ERROR',
+        message: 'Failed to notify the driver via WhatsApp.',
+      });
+    }
+
+    await this.notifyStatusChange(updatedServiceOrder, ServiceOrderStatus.PICKUP);
   }
 
   private async notifyStatusChange(serviceOrder: any, newStatus: ServiceOrderStatus) {
-    const clientPhoneNumber = serviceOrder.client.phoneNo;
+    const clientPhoneNumber = serviceOrder.client?.phoneNo;
     const vendorPhoneNumber = serviceOrder.vendor?.phoneNo;
 
     const messages = {
@@ -166,27 +142,32 @@ export class ServicesOrdersService {
 
     const message = messages[newStatus];
 
-    switch (newStatus) {
-      case ServiceOrderStatus.CANCELED:
+    // Notify client
+    if (clientPhoneNumber) {
+      try {
         await this.whatsAppService.sendMessage(`${clientPhoneNumber}@c.us`, message);
-        if (vendorPhoneNumber) {
-          await this.whatsAppService.sendMessage(`${vendorPhoneNumber}@c.us`, `تم إلغاء طلب الخدمة برقم ${serviceOrder.id}.\nService order ID ${serviceOrder.id} has been canceled.`);
-        }
-        break;
+      } catch (error) {
+        console.warn(`Failed to send WhatsApp message to client: ${error.message}`);
+      }
+    }
 
-      case ServiceOrderStatus.PICKUP:
-      case ServiceOrderStatus.IN_PROGRESS:
-      case ServiceOrderStatus.COMPLETED:
-        await this.whatsAppService.sendMessage(`${clientPhoneNumber}@c.us`, message);
-        break;
-
-      default:
-        console.warn(`Unhandled status: ${newStatus}`);
-        break;
+    // Notify vendor or driver - fail hard if it fails
+    if (vendorPhoneNumber && newStatus === ServiceOrderStatus.PICKUP) {
+      try {
+        await this.whatsAppService.sendMessage(
+          `${vendorPhoneNumber}@c.us`,
+          `تم تعيين طلب الخدمة الخاص بك برقم ${serviceOrder.id}.\nYour service order with ID ${serviceOrder.id} is in progress.`,
+        );
+      } catch (error) {
+        console.error(`Failed to send WhatsApp message to vendor: ${error.message}`);
+        throw new BadRequestException({
+          code: 'WHATSAPP_VENDOR_ERROR',
+          message: 'Failed to notify the vendor via WhatsApp.',
+        });
+      }
     }
   }
 
-  // Delete a service order
   async deleteServiceOrder(orderId: number, userRole: Role) {
     this.rolePermissionService.enforcePermission(userRole, Permission.DELETE_SERVICE_ORDERS);
 

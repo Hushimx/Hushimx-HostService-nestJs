@@ -3,8 +3,8 @@ import { CreateServiceDto } from './dto/create-list.dto'
 import { UpdateServiceDto } from './dto/update-list.dto';
 import { QueryServiceDto } from './dto/query-list.dto';
 import { PaginatedResult, paginateAndSort } from 'src/utils/pagination';
-import { RolePermissionService } from 'src/auth/role-permission-service/role-permission-service.service';
-import { Permission,Role } from 'src/auth/role-permission-service/rolesData';
+import { RolePermissionService } from 'src/admin/auth/role-permission-service/role-permission-service.service';
+import { Permission,Role } from 'src/admin/auth/role-permission-service/rolesData';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { from } from 'rxjs';
 import { PrismaService } from 'src/prisma/prisma.service';

@@ -1,13 +1,13 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query, ValidationPipe, UseGuards, ParseIntPipe, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { Admin } from '@prisma/client';
-import { GetUser } from 'src/auth/decorator';
 import { ApiBearerAuth, ApiOperation, ApiTags,ApiConsumes } from '@nestjs/swagger';
-import { AdminJwt } from 'src/auth/guard';
+import { AdminJwt } from 'src/admin/auth/guard';
 import { QueryEventDto } from './dto/query-event.dto';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { EventsService } from './event.service';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { GetUser } from 'src/decorator/get-user.decorator';
 
 
 

@@ -1,9 +1,9 @@
-import { IsNotEmpty, IsInt, IsOptional, IsString,IsEmail,IsUrl   } from 'class-validator';
+import { IsNotEmpty, IsInt, IsOptional, IsString,IsEmail,IsUrl,IsMobilePhone   } from 'class-validator';
 import { Type } from 'class-transformer';
 
 import { PartialType } from '@nestjs/mapped-types';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { PaginationAndSortingDto } from './pagination.dto';
+import { PaginationAndSortingDto } from '../../dto/pagination.dto';
 
 export class QueryVendorDto extends PaginationAndSortingDto {
   @ApiProperty({ description: 'Filter by city Id', required: false, example: '1' })
@@ -19,7 +19,7 @@ export class QueryVendorDto extends PaginationAndSortingDto {
   country?: string;
   @ApiProperty({ description: 'Phone number', example: '596000912' })
   @IsOptional()
-  @IsString()
+  @IsMobilePhone()
   phoneNo?: string;
   @ApiProperty({ description: 'Filter by vendor name', required: false, example: 'Vendor A' })
   @IsOptional()
@@ -35,6 +35,9 @@ export class QueryVendorDto extends PaginationAndSortingDto {
 }
 
 export class CreateVendorDto {
+  static phoneNo(phoneNo: any) {
+    throw new Error('Method not implemented.');
+  }
   @ApiProperty({ description: 'Name of the vendor', example: 'Vendor A' })
   @IsNotEmpty()
   @IsString()
@@ -42,7 +45,7 @@ export class CreateVendorDto {
 
   @ApiProperty({ description: 'Phone number of the vendor', example: '596000912' })
   @IsNotEmpty()
-  @IsString()
+  @IsMobilePhone()
   phoneNo: string;
 
   @ApiProperty({ description: 'City ID where the vendor is located', example: 1 })
@@ -76,7 +79,7 @@ export class UpdateVendorDto extends PartialType(CreateVendorDto) {
 
   @ApiPropertyOptional({ description: 'Updated phone number of the vendor', example: '596000913' })
   @IsOptional()
-  @IsString()
+  @IsMobilePhone()
   phoneNo?: string;
 
 

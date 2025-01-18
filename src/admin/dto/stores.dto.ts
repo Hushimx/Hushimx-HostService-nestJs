@@ -1,7 +1,7 @@
 import { IsString, IsOptional, IsInt, IsUUID } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { PaginationAndSortingDto } from './pagination.dto';
+import { PaginationAndSortingDto } from '../../dto/pagination.dto';
 
 export class CreateStoreDto {
   @ApiProperty({ description: 'Name of the store', example: 'ElectroMart' })

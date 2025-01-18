@@ -13,9 +13,8 @@ import {
 } from '@nestjs/common';
 import { RoomsService } from './rooms.service';
 import { QueryRoomsDto, CreateRoomDto, EditRoomDto } from 'src/admin/dto/rooms.dto';
-import { GetUser } from 'src/auth/decorator';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { AdminJwt } from 'src/auth/guard';
+import { GetUser } from 'src/decorator/get-user.decorator';import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { AdminJwt } from 'src/admin/auth/guard';
 import { Admin } from 'types/admin';
 
 @ApiTags('Hotels/Rooms')

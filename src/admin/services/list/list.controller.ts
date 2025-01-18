@@ -1,11 +1,10 @@
 import { Body, Controller, Delete, Get, HttpStatus, Injectable, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
-import { GetUser } from 'src/auth/decorator';
-import { QueryServiceDto } from './dto/query-list.dto';
+import { GetUser } from 'src/decorator/get-user.decorator';import { QueryServiceDto } from './dto/query-list.dto';
 import { CreateServiceDto } from './dto/create-list.dto';
 import { UpdateServiceDto } from './dto/update-list.dto';
 import { ListService } from './list.service';
-import { AdminJwt } from 'src/auth/guard';
+import { AdminJwt } from 'src/admin/auth/guard';
 
 
 @UseGuards(AdminJwt)

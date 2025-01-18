@@ -3,10 +3,9 @@ import { CitiesService } from './cities.service';
 import {  CreateCityServiceDto } from './dto/create-city.dto';
 import {  UpdateCityServiceDto } from './dto/update-city.dto';
 import { ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
-import { GetUser } from 'src/auth/decorator';
-import { QueryCityServiceDto } from './dto/query-city.dto';
-import { DefaultApiErrors } from 'src/admin/decorator';
-import { AdminJwt } from 'src/auth/guard';
+import { GetUser } from 'src/decorator/get-user.decorator';import { QueryCityServiceDto } from './dto/query-city.dto';
+import { DefaultApiErrors } from 'src/decorator';
+import { AdminJwt } from 'src/admin/auth/guard';
 
 
 @DefaultApiErrors()

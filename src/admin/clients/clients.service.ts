@@ -1,7 +1,7 @@
 // clients.service.ts
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { RolePermissionService } from 'src/auth/role-permission-service/role-permission-service.service';
-import { Permission, Role } from 'src/auth/role-permission-service/rolesData';
+import { RolePermissionService } from 'src/admin/auth/role-permission-service/role-permission-service.service';
+import { Permission, Role } from 'src/admin/auth/role-permission-service/rolesData';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { paginateAndSort } from 'src/utils/pagination';
 import { CreateClientDto, UpdateClientDto,  QueryClientDto } from './dto/clients.dto';

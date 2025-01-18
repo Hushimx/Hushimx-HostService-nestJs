@@ -1,7 +1,7 @@
 import { IsOptional, IsString, IsNotEmpty, IsInt } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { PaginationAndSortingDto } from './pagination.dto';
+import { PaginationAndSortingDto } from '../../dto/pagination.dto';
 
 export class QueryCityDto extends PaginationAndSortingDto {
 

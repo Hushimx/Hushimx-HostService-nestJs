@@ -1,8 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsInt, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsString, IsInt, IsOptional, IsMobilePhone } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PartialType } from '@nestjs/mapped-types';
-import { PaginationAndSortingDto } from './pagination.dto';
+import { PaginationAndSortingDto } from '../../dto/pagination.dto';
 
 // DTO for creating a driver
 export class CreateDriverDto {
@@ -13,7 +13,7 @@ export class CreateDriverDto {
 
   @ApiProperty({ description: 'Phone number of the driver', example: '596000912' })
   @IsNotEmpty()
-  @IsString()
+  @IsMobilePhone()
   phoneNo: string;
 
   @ApiProperty({ description: 'City ID of the driver', example: 1 })
@@ -31,7 +31,7 @@ export class UpdateDriverDto  {
 
   @ApiProperty({ description: 'Phone number of the driver', example: '596000912' })
   @IsOptional()
-  @IsString()
+  @IsMobilePhone()
   phoneNo?: string;
 
   @ApiProperty({ description: 'City ID of the driver', example: 1 })

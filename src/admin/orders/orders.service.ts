@@ -6,19 +6,19 @@ import {
 import { PrismaService } from 'src/prisma/prisma.service';
 import { QueryOrdersDto, EditOrderDto } from 'src/admin/dto/orders.dto';
 import { paginateAndSort, PaginatedResult } from 'src/utils/pagination';
-import { RolePermissionService } from 'src/auth/role-permission-service/role-permission-service.service';
-import { Permission } from 'src/auth/role-permission-service/rolesData';
-import { Role } from 'src/auth/role-permission-service/rolesData';
+import { RolePermissionService } from 'src/admin/auth/role-permission-service/role-permission-service.service';
+import { Permission } from 'src/admin/auth/role-permission-service/rolesData';
+import { Role } from 'src/admin/auth/role-permission-service/rolesData';
 import { buildFilters } from 'src/utils/filters';
 import { DeliveryOrderStatus } from '@prisma/client';
-import { TestService } from 'src/test/test.service';
+import { WwebjsService } from 'src/wwebjs/wwebjs.service';
 
 @Injectable()
 export class OrdersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly rolePermissionService: RolePermissionService,
-    private readonly whatsAppService: TestService,
+    private readonly wwebjsService: WwebjsService,
   ) {}
 
   async getOrders(
@@ -112,22 +112,17 @@ export class OrdersService {
       });
     }
 
-    if (dto.status === DeliveryOrderStatus.PICKUP && !order.driverId) {
-      throw new BadRequestException({
-        code: 'DRIVER_REQUIRED',
-        message: 'A driver must be assigned before marking the order as PICKUP.',
-      });
-    }
-
-    if (dto.driverId) {
+    if (dto.driverId && dto.driverId !== order.driverId) {
+      // Assign the new driver and trigger status change to PICKUP
       await this.assignDriver(order, dto.driverId);
     }
 
     const isStatusChanged = dto.status && dto.status !== order.status;
 
+    // Update the order with any other fields (except driver and status handled above)
     const updatedOrder = await this.prisma.deliveryOrder.update({
       where: { id: orderId },
-      data: dto,
+      data: { ...dto, driverId: undefined, status: undefined },
     });
 
     if (isStatusChanged) {
@@ -157,19 +152,29 @@ export class OrdersService {
       });
     }
 
-    await this.prisma.deliveryOrder.update({
+    // Update the order with the assigned driver and status to PICKUP
+    const updatedOrder = await this.prisma.deliveryOrder.update({
       where: { id: order.id },
-      data: { driverId },
+      data: { driverId, status: DeliveryOrderStatus.PICKUP },
+      include: { orderItems: true, city: true },
     });
 
-    const itemsDescription = order.orderItems
-      .map((item: any) => `${item.quantity}x ${item.productTitle} \n${item.quantity}x ${item.productTitle}`)
+    // Notify driver
+    const itemsDescription = updatedOrder.orderItems
+      .map((item: any) => `${item.quantity}x ${item.productTitle}`)
       .join('\n');
 
-    await this.whatsAppService.sendMessage(
-      `${driver.phoneNo}@c.us`,
-      `You have been assigned to deliver order ID ${order.id}. Items:\n${itemsDescription}`,
-    );
+    try {
+      await this.wwebjsService.sendMessage(
+        driver.phoneNo,
+        `You have been assigned to deliver order ID ${updatedOrder.id}. Items:\n${itemsDescription}\n\nلديكم طلب جديد للتوصيل رقم ${updatedOrder.id}. المنتجات:\n${itemsDescription}`,
+      );
+    } catch (error) {
+      console.error(`Failed to send WhatsApp message to driver: ${error.message}`);
+    }
+
+    // Trigger status change notifications
+    await this.notifyStatusChange(updatedOrder, DeliveryOrderStatus.PICKUP);
   }
 
   private async notifyStatusChange(order: any, newStatus: DeliveryOrderStatus) {
@@ -185,35 +190,51 @@ export class OrdersService {
 
     const message = messages[newStatus];
 
-    switch (newStatus) {
-      case DeliveryOrderStatus.CANCELED:
-        await this.whatsAppService.sendMessage(`${clientPhoneNumber}@c.us`, message);
-        if (vendorPhoneNumber) {
-          await this.whatsAppService.sendMessage(`${vendorPhoneNumber}@c.us`, `Order ID ${order.id} has been canceled.`);
+    try {
+      await this.wwebjsService.sendMessage(`${clientPhoneNumber}`, message);
+    } catch (error) {
+      console.warn(`Failed to send WhatsApp message to client: ${error.message}`);
+    }
+
+    if (vendorPhoneNumber || newStatus === DeliveryOrderStatus.PICKUP) {
+      try {
+        switch (newStatus) {
+          case DeliveryOrderStatus.CANCELED:
+            await this.wwebjsService.sendMessage(
+              `${vendorPhoneNumber}`,
+              `Order ID ${order.id} has been canceled.`,
+            );
+            break;
+
+          case DeliveryOrderStatus.PICKUP:
+            const vendorItemsDescription = order.orderItems
+              .map((item: any) => `${item.quantity}x ${item.productTitle}`)
+              .join('\n');
+            await this.wwebjsService.sendMessage(
+              `${vendorPhoneNumber}`,
+              `Order ID ${order.id} is ready for pickup. Items:\n${vendorItemsDescription}.`,
+            );
+            break;
+
+          case DeliveryOrderStatus.ON_WAY:
+          case DeliveryOrderStatus.COMPLETED:
+            await this.wwebjsService.sendMessage(
+              `${vendorPhoneNumber}`,
+              `Order ID ${order.id} has been ${newStatus.toLowerCase()}.`,
+            );
+            break;
+
+          default:
+            console.warn(`Unhandled status: ${newStatus}`);
+            break;
         }
-        break;
-
-      case DeliveryOrderStatus.PICKUP:
-        await this.whatsAppService.sendMessage(`${clientPhoneNumber}@c.us`, message);
-        if (vendorPhoneNumber) {
-          const vendorItemsDescription = order.orderItems
-            .map((item: any) => `${item.quantity}x ${item.productTitle} \n${item.quantity}x ${item.productTitle}`)
-            .join('\n');
-          await this.whatsAppService.sendMessage(
-            `${vendorPhoneNumber}@c.us`,
-            `Order ID ${order.id} is ready for pickup. Items:\n${vendorItemsDescription}.`,
-          );
-        }
-        break;
-
-      case DeliveryOrderStatus.ON_WAY:
-      case DeliveryOrderStatus.COMPLETED:
-        await this.whatsAppService.sendMessage(`${clientPhoneNumber}@c.us`, message);
-        break;
-
-      default:
-        console.warn(`Unhandled status: ${newStatus}`);
-        break;
+      } catch (error) {
+        console.error(`Failed to send WhatsApp message to vendor/driver: ${error.message}`);
+        throw new BadRequestException({
+          code: 'WHATSAPP_ERROR',
+          message: 'An error occurred while sending a WhatsApp notification to the vendor or driver.',
+        });
+      }
     }
   }
 

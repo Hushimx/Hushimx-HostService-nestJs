@@ -1,8 +1,7 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, ParseIntPipe } from '@nestjs/common';
 import { DriversService } from './drivers.service';
 import { CreateDriverDto, UpdateDriverDto, QueryDriverDto } from '../dto/driver.dto';
-import { GetUser } from 'src/auth/decorator';
-import { AdminJwt } from 'src/auth/guard';
+import { GetUser } from 'src/decorator/get-user.decorator';import { AdminJwt } from 'src/admin/auth/guard';
 
 
 

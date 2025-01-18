@@ -1,7 +1,6 @@
 import { Controller, Get, Post, Patch, Delete, Query, Param, Body, UseGuards, ParseIntPipe, ValidationPipe } from '@nestjs/common';
-import { GetUser } from 'src/auth/decorator';
-import {  ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { AdminJwt } from 'src/auth/guard';
+import { GetUser } from 'src/decorator/get-user.decorator';import {  ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { AdminJwt } from 'src/admin/auth/guard';
 import { QueryServiceOrdersDto } from './dto/query-order.dto';
 import { UpdateServiceOrderDto } from './dto/update-order.dto';
 import { ServicesOrdersService } from './orders.service';

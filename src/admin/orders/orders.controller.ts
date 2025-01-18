@@ -12,9 +12,8 @@ import {
 } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { QueryOrdersDto, EditOrderDto } from 'src/admin/dto/orders.dto';
-import { GetUser } from 'src/auth/decorator';
-import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
-import { AdminJwt } from 'src/auth/guard';
+import { GetUser } from 'src/decorator/get-user.decorator';import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { AdminJwt } from 'src/admin/auth/guard';
 
 @ApiTags('Orders')
 @Controller('admin/orders')

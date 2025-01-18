@@ -29,7 +29,7 @@ import { StoresModule } from './stores/stores.module';
 import { StoresController } from './stores/stores.controller';
 import { ClientsModule } from './clients/clients.module';
 import { ServicesModule } from './services/services.module';
-import { ServiceService } from 'src/service/service.service';
+import { ServiceService } from 'src/client/service/service.service';
 import { EventModule } from './event/event.module';
 
 @Module({

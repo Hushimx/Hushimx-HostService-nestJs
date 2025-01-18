@@ -2,8 +2,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { PhotoStorageService } from 'src/photo-storage/photo-storage.service';
 import { CreateStoreDto, UpdateStoreDto, QueryStoreDto } from '../dto/stores.dto';
-import { RolePermissionService } from 'src/auth/role-permission-service/role-permission-service.service';
-import { Permission, Role } from 'src/auth/role-permission-service/rolesData';
+import { RolePermissionService } from 'src/admin/auth/role-permission-service/role-permission-service.service';
+import { Permission, Role } from 'src/admin/auth/role-permission-service/rolesData';
 import { paginateAndSort } from 'src/utils/pagination';
 import { buildFilters } from 'src/utils/filters';
 

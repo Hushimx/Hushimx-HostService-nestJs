@@ -1,8 +1,7 @@
 import { Controller, Get, Post, Patch, Delete, Query, Param, Body, UseGuards, ParseIntPipe, ValidationPipe } from '@nestjs/common';
 import { HotelsService } from './hotels.service';
 import { CreateHotelDto, EditHotelDto, QueryHotelsDto } from '../dto/Hotels.dto';
-import { GetUser } from 'src/auth/decorator';
-import { AdminJwt } from 'src/auth/guard';
+import { GetUser } from 'src/decorator/get-user.decorator';import { AdminJwt } from 'src/admin/auth/guard';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 
 @ApiTags('Hotels')

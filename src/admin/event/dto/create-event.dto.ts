@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString, IsOptional, IsInt } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateEventDto {
   @ApiProperty({ type: String, required: true })
@@ -26,6 +27,7 @@ export class CreateEventDto {
   locationUrl?: string;
 
   @ApiProperty({ type: Number, required: true })
+  @Type(() => Number)
   @IsInt()
   cityId: number;
 }

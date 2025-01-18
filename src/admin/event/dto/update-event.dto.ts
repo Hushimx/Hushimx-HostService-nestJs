@@ -1,5 +1,4 @@
-import { PartialType } from '@nestjs/swagger';
-import { CreateEventDto } from './create-event.dto';
+import { Type } from 'class-transformer';
 
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString, IsOptional, IsInt } from 'class-validator';
@@ -32,6 +31,7 @@ export class UpdateEventDto {
 
   @ApiProperty({ type: Number, required: false })
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   cityId?: number;
 }

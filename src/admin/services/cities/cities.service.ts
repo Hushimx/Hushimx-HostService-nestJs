@@ -1,10 +1,10 @@
 import { Injectable, NotFoundException, ForbiddenException, ConflictException, BadRequestException } from '@nestjs/common';
 import { paginateAndSort } from 'src/utils/pagination';
-import { Permission,Role } from 'src/auth/role-permission-service/rolesData';
+import { Permission,Role } from 'src/admin/auth/role-permission-service/rolesData';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { buildFilters } from 'src/utils/filters';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { RolePermissionService } from 'src/auth/role-permission-service/role-permission-service.service';
+import { RolePermissionService } from 'src/admin/auth/role-permission-service/role-permission-service.service';
 import { CreateCityServiceDto } from './dto/create-city.dto';
 import { QueryCityServiceDto } from './dto/query-city.dto';
 import { UpdateCityServiceDto } from './dto/update-city.dto';
@@ -38,7 +38,7 @@ export class CitiesService {
 
     this.rolePermissionService.enforceManageInCountry(
       userRole,
-      Permission.CREATE_DRIVERS,
+      Permission.CREATE_VENDORS,
       userCountryId,
       city.countryId,
     );
@@ -49,6 +49,8 @@ export class CitiesService {
         data: {
           serviceId: service.id,
           vendorId: dto.vendorId,
+          address: dto.address,
+          locationUrl: dto.locationUrl ? dto.locationUrl : undefined,
           cityId: dto.cityId,
           description: dto.description,
           description_ar: dto.description_ar,
@@ -152,12 +154,7 @@ export class CitiesService {
     try {
       const CityServiceRecord = await this.prisma.cityServiceVendor.update({
         where: { id },
-        data: {
-          vendorId: dto.vendorId,
-          cityId: dto.cityId,
-          description: dto.description || CityService.description,
-          description_ar: dto.description_ar || CityService.description_ar,
-        },
+        data: dto,
       });
       return CityServiceRecord;
     } catch (error) {

@@ -1,10 +1,9 @@
 // cities.controller.ts
 import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, UseGuards, Query, ValidationPipe } from '@nestjs/common';
 import { CitiesService } from './cities.service';
-import { GetUser } from 'src/auth/decorator';
-import { CreateCityDto, UpdateCityDto,  QueryCityDto } from 'src/admin/dto/cities.dto';
+import { GetUser } from 'src/decorator/get-user.decorator';import { CreateCityDto, UpdateCityDto,  QueryCityDto } from 'src/admin/dto/cities.dto';
 import { ApiOperation } from '@nestjs/swagger';
-import { AdminJwt } from 'src/auth/guard';
+import { AdminJwt } from 'src/admin/auth/guard';
 
 @UseGuards(AdminJwt)
 @Controller('admin/countries/:countryId/cities')

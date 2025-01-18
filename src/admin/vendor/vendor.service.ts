@@ -1,16 +1,18 @@
-import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { Injectable, ForbiddenException, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { paginateAndSort, PaginatedResult } from 'src/utils/pagination';
 import { CreateVendorDto, QueryVendorDto, UpdateVendorDto } from '../dto/vendor.dto';
-import { RolePermissionService } from 'src/auth/role-permission-service/role-permission-service.service';
-import { Permission, Role } from 'src/auth/role-permission-service/rolesData';
+import { RolePermissionService } from 'src/admin/auth/role-permission-service/role-permission-service.service';
+import { Permission, Role } from 'src/admin/auth/role-permission-service/rolesData';
 import { buildFilters } from 'src/utils/filters';
+import { WwebjsService } from 'src/wwebjs/wwebjs.service';
 
 @Injectable()
 export class VendorService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly rolePermissionService: RolePermissionService,
+    private readonly wwebjsService: WwebjsService
   ) {}
 
   /**
@@ -37,42 +39,71 @@ export class VendorService {
       userCountryId,
       city.countryId,
     );
-  
+    try {
+      const isValid = await this.wwebjsService.checkForNumber(createVendorDto.phoneNo);
+      if (!isValid) {
+        throw new BadRequestException({
+          code: "INVALID_WHATSAPP_NUMBER",
+          message: 'Phone number is not valid',
+        });
+      }
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException({
+        code: "WHATSAPP_ERROR",
+        message: 'WhatsApp bots doesn\'t work',
+      });
+    }
+
     // Hash the password (if applicable)
     const hashedPassword = await this.hashPassword(createVendorDto.password);
   
     // Create the vendor
-    return this.prisma.vendor.create({
-      data: {
-        email: createVendorDto.email,
-        password: hashedPassword,
-        name: createVendorDto.name,
-        phoneNo: createVendorDto.phoneNo,
-        address: createVendorDto.address,
-        cityId: createVendorDto.cityId,
-        locationUrl: createVendorDto.locationUrl || null,
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        phoneNo: true,
-        address: true,
-        locationUrl: true,
-        city: {
-          select: {
-            id: true,
-            name: true,
-            country: {
-              select: {
-                id: true,
-                name: true,
+    try{
+      const vendor = await this.prisma.vendor.create({
+        data: {
+          email: createVendorDto.email,
+          password: hashedPassword,
+          name: createVendorDto.name,
+          phoneNo: createVendorDto.phoneNo,
+          address: createVendorDto.address,
+          cityId: createVendorDto.cityId,
+          locationUrl: createVendorDto.locationUrl || null,
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phoneNo: true,
+          address: true,
+          locationUrl: true,
+          city: {
+            select: {
+              id: true,
+              name: true,
+              country: {
+                select: {
+                  id: true,
+                  name: true,
+                },
               },
             },
           },
         },
-      },
-    });
+      });
+      return vendor
+  
+    }catch (error) {
+      if (error.code === 'P2002') {
+        throw new ConflictException({
+              code:"EMAIL_CONFLICT",
+              message:"Email is already registed"
+});
+      }
+      throw error;
+    }
   }
   
   // Helper method for password hashing (if required)
@@ -188,7 +219,26 @@ export class VendorService {
       userCountryId,
       vendor.city.countryId,
     );
-  
+    if(updateVendorDto.phoneNo){
+      try {
+        const isValid = await this.wwebjsService.checkForNumber(updateVendorDto.phoneNo);
+        if (!isValid) {
+          throw new BadRequestException({
+            code: "INVALID_WHATSAPP_NUMBER",
+            message: 'Phone number is not valid',
+          });
+      
+        }
+      } catch (error) {
+        if (error instanceof BadRequestException) {
+          throw error;
+        }
+        throw new BadRequestException({
+          code: "WHATSAPP_ERROR",
+          message: 'WhatsApp bots doesn\'t work',
+        });
+      }  
+    }
     // Prepare update data
     const updateData: any = { ...updateVendorDto };
   
@@ -200,22 +250,34 @@ export class VendorService {
     }
   
     // Update the vendor
-    return this.prisma.vendor.update({
-      where: { id: vendorId },
-      data: updateData,
-      select: {
-        id: true,
-        name: true,
-        email:true,
-        phoneNo: true,
-        city: {
-          select: {
-            id: true,
-            name: true,
+    try{
+      const updatedVendor = await this.prisma.vendor.update({
+        where: { id: vendorId },
+        data: updateData,
+        select: {
+          id: true,
+          name: true,
+          email:true,
+          phoneNo: true,
+          city: {
+            select: {
+              id: true,
+              name: true,
+            },
           },
         },
-      },
-    });
+      });
+      return updatedVendor
+    }catch(e){
+      if (e.code === 'P2002') {
+        throw new ConflictException({
+code:"EMAIL_CONFLICT",
+message:"Email is already registed"
+
+});
+      }
+      throw e
+    }
   }
   
 

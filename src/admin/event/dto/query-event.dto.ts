@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { PaginationAndSortingDto } from "src/admin/dto/pagination.dto";
+import { PaginationAndSortingDto } from "src/dto/pagination.dto";
 import  {IsOptional} from 'class-validator'
 import { Type } from 'class-transformer';
 

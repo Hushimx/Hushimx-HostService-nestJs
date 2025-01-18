@@ -2,8 +2,8 @@ import { Injectable, ForbiddenException, NotFoundException, BadRequestException,
 import { PrismaService } from 'src/prisma/prisma.service';
 import { QueryRoomsDto, CreateRoomDto, EditRoomDto } from 'src/admin/dto/rooms.dto';
 import { paginateAndSort, PaginatedResult } from 'src/utils/pagination';
-import { RolePermissionService } from 'src/auth/role-permission-service/role-permission-service.service';
-import { Permission, Role } from 'src/auth/role-permission-service/rolesData';
+import { RolePermissionService } from 'src/admin/auth/role-permission-service/role-permission-service.service';
+import { Permission, Role } from 'src/admin/auth/role-permission-service/rolesData';
 
 @Injectable()
 export class RoomsService {

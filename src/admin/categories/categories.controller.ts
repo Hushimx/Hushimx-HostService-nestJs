@@ -6,10 +6,10 @@ import {
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto,UpdateCategoryDto } from 'src/admin/dto/Categories.dto';
 import { Role } from '@prisma/client';
-import { GetUser } from 'src/auth/decorator';
-import { AdminJwt } from 'src/auth/guard';
+import { AdminJwt } from 'src/admin/auth/guard';
 import { ApiBearerAuth, ApiDefaultResponse, ApiTags } from '@nestjs/swagger';
-import { DefaultApiErrors } from '../decorator';
+import { DefaultApiErrors } from '../../decorator';
+import { GetUser } from 'src/decorator/get-user.decorator';
 
 
 @ApiTags('Categories','Admin')

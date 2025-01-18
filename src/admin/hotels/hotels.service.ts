@@ -2,8 +2,9 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateHotelDto, EditHotelDto, QueryHotelsDto } from '../dto/Hotels.dto';
 import { paginateAndSort } from 'src/utils/pagination';
-import { Role,Permission} from 'src/auth/role-permission-service/rolesData';
-import { RolePermissionService } from 'src/auth/role-permission-service/role-permission-service.service';
+import { Role,Permission} from 'src/admin/auth/role-permission-service/rolesData';
+import { RolePermissionService } from 'src/admin/auth/role-permission-service/role-permission-service.service';
+import { buildFilters } from 'src/utils/filters';
 
 @Injectable()
 export class HotelsService {
@@ -19,30 +20,15 @@ export class HotelsService {
     // Enforce permission to view hotels
     this.rolePermissionService.enforcePermission(userRole, Permission.VIEW_HOTELS);
 
-    const filters: any = {};
+    const filters = buildFilters({
+      userRole,
+      userCountryId,
+      dto: query,
+      allowedFields: ['name'],
+    })
+ 
 
-    // Default filter: Restrict access to user's country
-    filters.city = { countryId: userCountryId };
 
-    // Special case: Unrestricted access for ACCESS_ALL_HOTELS
-    if (this.rolePermissionService.hasPermission(userRole, Permission.ACCESS_ALL_HOTELS)) {
-      delete filters.city;
-      if (query.country) {
-        filters.city = {
-          ...filters.city,
-          country: { id: query.country },
-        };
-      }
-      if (query.city) {
-        filters.cityId = query.city;
-      }
-    }
-
-    // Common filters
-    if (query.name) {
-      console.log(query.name,3333)
-      filters.name = { contains: query.name, mode: 'insensitive' };
-    }
 
     const allowedSortFields = ['name', 'createdAt', 'updatedAt'];
 

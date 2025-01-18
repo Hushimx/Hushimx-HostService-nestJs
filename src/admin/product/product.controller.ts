@@ -16,10 +16,9 @@ import {
 import { ProductService } from './product.service';
 import { CreateProductDto, UpdateProductDto, QueryProductDto } from '../dto/products.dto';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
-import { GetUser } from 'src/auth/decorator';
-import { AdminJwt } from 'src/auth/guard';
+import { GetUser } from 'src/decorator/get-user.decorator';import { AdminJwt } from 'src/admin/auth/guard';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { DefaultApiErrors } from '../decorator';
+import { DefaultApiErrors } from '../../decorator';
 
 @ApiTags('Products')
 @Controller('admin/products/:storeId')

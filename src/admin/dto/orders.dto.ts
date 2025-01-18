@@ -2,7 +2,7 @@ import { IsOptional, IsInt, IsEnum, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {  DeliveryOrderStatus } from '@prisma/client';
-import { PaginationAndSortingDto } from './pagination.dto';
+import { PaginationAndSortingDto } from '../../dto/pagination.dto';
 
 export class QueryOrdersDto extends PaginationAndSortingDto {
   @ApiProperty({ description: 'Filter by order ID', example: 1, required: false })

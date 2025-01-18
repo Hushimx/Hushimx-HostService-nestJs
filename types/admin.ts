@@ -1,4 +1,4 @@
-import { Role } from "src/auth/role-permission-service/rolesData";
+import { Role } from "src/admin/auth/role-permission-service/rolesData";
 
 export type Admin = {
     id: number;
