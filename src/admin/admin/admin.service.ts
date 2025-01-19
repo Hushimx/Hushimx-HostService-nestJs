@@ -8,7 +8,7 @@ import { Role, Permission } from 'src/admin/auth/role-permission-service/rolesDa
 import { buildFilters } from 'src/utils/filters';
 
 @Injectable()
-export class AdminService {
+export class AdminsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly rolePermissionService: RolePermissionService,

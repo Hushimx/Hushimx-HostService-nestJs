@@ -6,7 +6,7 @@ import { UpdateServiceOrderDto } from './dto/update-order.dto';
 import { ServicesOrdersService } from './orders.service';
 
 @ApiTags('Service Orders')
-@Controller('admin/services/orders')
+@Controller('admin/orders/service')
 @UseGuards(AdminJwt)
 @ApiBearerAuth()
 export class OrdersController {

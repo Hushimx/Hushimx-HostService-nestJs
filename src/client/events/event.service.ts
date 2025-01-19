@@ -15,6 +15,7 @@ export class EventService {
       select: {
         id: true,
         title: true,
+        title_ar: true,
         description: true,
         description_ar: true,
         address: true,
@@ -42,6 +43,7 @@ export class EventService {
       select: {
         id: true,
         title: true,
+        title_ar: true,
         description: true,
         description_ar: true,
         address: true,

@@ -93,9 +93,9 @@ async function main() {
 
     // Step 5: Seed store sections
     const storeSections = [
-      { name: 'Restaurants', name_ar: 'المطاعم' },
-      { name: 'Pharmacies', name_ar: 'الصيدليات' },
-      { name: 'Groceries', name_ar: 'البقالات' },
+      { name: 'Restaurants', name_ar: 'المطاعم',slug:"resturants" },
+      { name: 'Pharmacies', name_ar: 'الصيدليات',slug:"pharmacies" },
+      { name: 'Groceries', name_ar: 'البقالات',slug:"groceries" },
     ];
 
     for (const section of storeSections) {
@@ -103,6 +103,7 @@ async function main() {
         data: {
           name: section.name,
           name_ar: section.name_ar,
+          slug: section.slug
         },
       });
     }

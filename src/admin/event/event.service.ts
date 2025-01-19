@@ -87,6 +87,7 @@ export class EventsService {
     return this.prisma.event.create({
       data: {
         title: data.title,
+        title_ar: data.title_ar,
         description: data.description,
         description_ar: data.description_ar,
         address: data.address,

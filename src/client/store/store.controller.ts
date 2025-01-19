@@ -37,9 +37,9 @@ export class StoreController {
       },
     },
   })
-  async getStoresBySection(@Param('type') type: string, @GetUser() user: any) {
+  async getStoresBySection(@Param('section') section: string, @GetUser() user: any) {
     const cityId = user.cityId; // Extract cityId from the session
-    return this.storeService.getStoresBySection(type, cityId);
+    return this.storeService.getStoresBySection(section, cityId);
   }
 
   // Get a single store by ID

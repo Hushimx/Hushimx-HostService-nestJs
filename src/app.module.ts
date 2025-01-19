@@ -13,9 +13,12 @@ import { PaymentMethodsModule } from './client/payment-methods/payment-methods.m
 import { WhatsappNotificationModule } from './whatsapp_notification/whatsapp_notification.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
-import { TestModule } from './wwebjs/wwebjs.module';
+import {  WwebjsModule } from './wwebjs/wwebjs.module';
 import { PhotoStorageModule } from './photo-storage/photo-storage.module';
 import { VendorModule } from './vendor/vendor.module';
+import { ServiceController } from './service/service.controller';
+import { DriverModule } from './driver/driver.module';
+import { OrderManagementModule } from './order-management/order-management.module';
 
 @Module({
   imports: [
@@ -39,9 +42,12 @@ import { VendorModule } from './vendor/vendor.module';
     RolePermissionServiceModule,
     PaymentMethodsModule,
     WhatsappNotificationModule,
-    TestModule,
+    WwebjsModule,
     PhotoStorageModule,
     VendorModule,
+    DriverModule,
+    OrderManagementModule,
   ],
+  controllers: [ServiceController],
 })
 export class AppModule {}

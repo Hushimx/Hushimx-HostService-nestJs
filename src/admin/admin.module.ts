@@ -13,8 +13,8 @@ import { HotelsController } from './hotels/hotels.controller';
 import { VendorController } from './vendor/vendor.controller';
 import { ProductController } from './product/product.controller';
 import { RoomsController } from './rooms/rooms.controller';
-import { AdminController } from './admin/admin.controller'; // Admin Controller
-import { AdminService } from './admin/admin.service'; // Admin Service
+import { AdminsController } from './admin/admin.controller'; // Admin Controller
+import { AdminsService } from './admin/admin.service'; // Admin Service
 import { RoomsService } from './rooms/rooms.service'; // Rooms Service
 import { CountriesService } from './countries/countries.service'; // Country Service
 import { CitiesService  } from './countries/cities/cities.service'; // City Service
@@ -31,6 +31,9 @@ import { ClientsModule } from './clients/clients.module';
 import { ServicesModule } from './services/services.module';
 import { ServiceService } from 'src/client/service/service.service';
 import { EventModule } from './event/event.module';
+import { AdminController } from './admin.controller';
+import { AdminService } from './admin.service';
+import { OrderManagementModule } from 'src/order-management/order-management.module';
 
 @Module({
   imports: [
@@ -44,6 +47,7 @@ import { EventModule } from './event/event.module';
     CategoriesModule,
     CountriesModule,
     CitiesModule,
+    OrderManagementModule,
     DriversModule,
     StoresModule,
     ClientsModule,
@@ -51,6 +55,7 @@ import { EventModule } from './event/event.module';
   ],
   controllers: [
     AdminController, // Add Admin Controller
+    AdminsController,
     HotelsController,
     RoomsController, // Add Rooms Controller 
     ProductController, // Add Product Controller
@@ -68,7 +73,8 @@ import { EventModule } from './event/event.module';
     VendorService, // Add Vendor Service
     ServiceService, // Add Services Service
     ProductService,
-    AdminService, // Add Admin Service
+    AdminService, 
+    AdminsService, 
     DriversService
   ],
 })

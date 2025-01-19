@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Patch, Delete, Body, Query, Param, UseGuards, ForbiddenException, ParseIntPipe, ValidationPipe } from '@nestjs/common';
-import { AdminService } from './admin.service';
+import { AdminsService } from './admin.service';
 import { CreateAdminDto, EditAdminDto, GetAdminsQueryDto } from 'src/admin/dto/admin.dto';
 import { GetUser } from 'src/decorator/get-user.decorator';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
@@ -11,8 +11,8 @@ import { Admin } from 'types/admin';
 @Controller('admin/admins')
 @ApiBearerAuth()
 @UseGuards(AdminJwt)
-export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+export class AdminsController {
+  constructor(private readonly adminService: AdminsService) {}
 
   @Get()
   @ApiOperation({ summary: 'Get all admins with pagination and sorting' })

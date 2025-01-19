@@ -19,6 +19,7 @@ export enum Permission {
     EDIT_PRODUCTS = 'edit:products',
     DELETE_PRODUCTS = 'delete:products',
     ACCESS_ALL_ORDERS = 'accessAll:orders',
+    ACCESS_OVERVIEW = 'accessOverview',
     //CITIES
     ACCESS_ALL_CITIES = 'accessAll:cities',
     VIEW_CITIES = 'view:cities',
@@ -143,6 +144,8 @@ export enum Permission {
       Permission.CREATE_CITIES,
       Permission.EDIT_CITIES,
       Permission.DELETE_CITIES,
+      Permission.ACCESS_OVERVIEW
+
 
       
   
@@ -193,7 +196,9 @@ export enum Permission {
     Permission.VIEW_CITIES,
     Permission.CREATE_CITIES,
     Permission.EDIT_CITIES,
-    Permission.DELETE_CITIES
+    Permission.DELETE_CITIES,
+    //Overview
+    Permission.ACCESS_OVERVIEW
 
 
 

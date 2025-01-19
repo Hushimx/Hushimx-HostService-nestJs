@@ -17,7 +17,7 @@ export class UpdateCityServiceDto {
   description_ar?: string;
   
   @ApiProperty({ description: 'address of the service-vendor ', example: 'يقدم خدمات السباكة في الرياض' })
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   address: string;
   

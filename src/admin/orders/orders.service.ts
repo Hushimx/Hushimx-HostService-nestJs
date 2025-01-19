@@ -49,7 +49,7 @@ export class OrdersService {
 
     return paginateAndSort(
       this.prisma.deliveryOrder,
-      { where: filters },
+      { where: filters, include: { driver: true } },
       {
         page: dto.page || 1,
         limit: dto.limit || 10,
@@ -65,35 +65,26 @@ export class OrdersService {
 
     const order = await this.prisma.deliveryOrder.findUnique({
       where: { id: orderId },
-      select: {
-        id: true,
-        clientName: true,
-        clientNumber: true,
-        hotelName: true,
-        roomNumber: true,
-        status: true,
-        paymentMethod: true,
-        notes: true,
-        total: true,
-        createdAt: true,
-        updatedAt: true,
-        orderItems: {
-          select: { id: true, quantity: true, price: true, productTitle: true },
+      include: {
+        orderItems: true,
+        city: true,
+        vendor: {
+          select: { id: true, name: true, locationUrl: true, address: true, phoneNo: true },
         },
-        city: {
-          select: { name: true, countryId: true },
-        },
+        driver: true,
       },
     });
 
     if (!order) {
-      throw new NotFoundException({
-        code: 'ORDER_NOT_FOUND',
-        message: 'Order not found. Please check the provided order ID.',
-      });
+      throw new NotFoundException('Order not found. Please check the provided order ID.');
     }
 
-    this.rolePermissionService.canManageInCountry(userRole, Permission.VIEW_ORDERS, userCountryId, order.city.countryId);
+    this.rolePermissionService.canManageInCountry(
+      userRole,
+      Permission.VIEW_ORDERS,
+      userCountryId,
+      order.city.countryId,
+    );
     return order;
   }
 
@@ -102,27 +93,37 @@ export class OrdersService {
 
     const order = await this.prisma.deliveryOrder.findUnique({
       where: { id: orderId },
-      include: { orderItems: true, city: true, driver: true },
+      include: {
+        orderItems: true,
+        city: true,
+        vendor: {
+          select: { id: true, name: true, locationUrl: true, address: true, phoneNo: true },
+        },
+        store: {
+          select: { id: true, name: true },
+        },
+        driver: true,
+      },
     });
 
     if (!order) {
-      throw new NotFoundException({
-        code: 'ORDER_NOT_FOUND',
-        message: 'Order not found. Please check the provided order ID.',
-      });
+      throw new NotFoundException('Order not found. Please check the provided order ID.');
     }
 
     if (dto.driverId && dto.driverId !== order.driverId) {
-      // Assign the new driver and trigger status change to PICKUP
       await this.assignDriver(order, dto.driverId);
     }
 
     const isStatusChanged = dto.status && dto.status !== order.status;
 
-    // Update the order with any other fields (except driver and status handled above)
     const updatedOrder = await this.prisma.deliveryOrder.update({
       where: { id: orderId },
-      data: { ...dto, driverId: undefined, status: undefined },
+      data: { ...dto,  },
+      include: {
+        vendor: {
+          select: { id: true, name: true, locationUrl: true, address: true, phoneNo: true },
+        },
+      }
     });
 
     if (isStatusChanged) {
@@ -139,102 +140,109 @@ export class OrdersService {
     });
 
     if (!driver) {
-      throw new BadRequestException({
-        code: 'DRIVER_NOT_FOUND',
-        message: 'The specified driver does not exist.',
-      });
+      throw new BadRequestException('The specified driver does not exist.');
     }
 
     if (driver.cityId !== order.city.id) {
-      throw new BadRequestException({
-        code: 'INVALID_DRIVER_CITY',
-        message: 'The driver must be located in the same city as the order.',
-      });
+      throw new BadRequestException('The driver must be located in the same city as the order.');
     }
 
-    // Update the order with the assigned driver and status to PICKUP
-    const updatedOrder = await this.prisma.deliveryOrder.update({
-      where: { id: order.id },
-      data: { driverId, status: DeliveryOrderStatus.PICKUP },
-      include: { orderItems: true, city: true },
-    });
-
-    // Notify driver
-    const itemsDescription = updatedOrder.orderItems
+    const itemsDescription = order.orderItems
       .map((item: any) => `${item.quantity}x ${item.productTitle}`)
       .join('\n');
 
+    const driverMessage = `
+تم تعيينك لتوصيل الطلب رقم ${order.id}.
+يرجى استلام الطلب من المتجر:
+المتجر: ${order.store?.name || ''}
+العنوان: ${order.vendor?.address || ''}
+اللوكيشن: ${order.vendor?.locationUrl || ''}
+
+ثم توصيله إلى الفندق:
+الفندق: ${order.hotelName || 'غير متوفر'}
+الغرفة: ${order.roomNumber || 'غير متوفر'}
+
+الطلبات:
+${itemsDescription}
+
+
+رابط تحديث الطلب : ${process.env.FRONTEND_URL}/driver/delivery/${order.driverAccessCode}
+    `;
+
+    const vendorMessage = `
+الطلب رقم ${order.id} قيد الالتقاط.
+يرجى تجهيز الطلب لاستلامه من قبل السائق.
+
+الطلبات :
+${itemsDescription}
+
+    `;
+
     try {
-      await this.wwebjsService.sendMessage(
-        driver.phoneNo,
-        `You have been assigned to deliver order ID ${updatedOrder.id}. Items:\n${itemsDescription}\n\nلديكم طلب جديد للتوصيل رقم ${updatedOrder.id}. المنتجات:\n${itemsDescription}`,
+      const driverNotificationSuccess = await this.safeSendMessage(driver.phoneNo, driverMessage);
+      if (!driverNotificationSuccess) {
+        throw new Error(`Failed to send WhatsApp message to driver.`);
+      }
+
+      const vendorNotificationSuccess = await this.safeSendMessage(
+        order.vendor?.phoneNo,
+        vendorMessage,
       );
+      if (!vendorNotificationSuccess) {
+        throw new Error(`Failed to send WhatsApp message to vendor.`);
+      }
     } catch (error) {
-      console.error(`Failed to send WhatsApp message to driver: ${error.message}`);
+      console.error(error.message);
+      throw new BadRequestException(
+        'Failed to notify the vendor or driver. Status not updated.',
+      );
     }
 
-    // Trigger status change notifications
-    await this.notifyStatusChange(updatedOrder, DeliveryOrderStatus.PICKUP);
+    return this.prisma.deliveryOrder.update({
+      where: { id: order.id },
+      data: { driverId, status: DeliveryOrderStatus.PICKUP },
+      include: { orderItems: true, vendor: { select: { id:true,name: true, phoneNo: true } } },
+    });
   }
 
-  private async notifyStatusChange(order: any, newStatus: DeliveryOrderStatus) {
-    const clientPhoneNumber = order.clientNumber;
-    const vendorPhoneNumber = order.vendor?.phoneNo;
-
-    const messages = {
-      [DeliveryOrderStatus.CANCELED]: `Your order with ID ${order.id} has been canceled.\nتم إلغاء طلبك رقم ${order.id}.`,
-      [DeliveryOrderStatus.PICKUP]: `Your order with ID ${order.id} is on its way.\nطلبك رقم ${order.id} في الطريق.`,
-      [DeliveryOrderStatus.ON_WAY]: `Your order with ID ${order.id} is out for delivery.\nطلبك رقم ${order.id} في طريقه للتوصيل.`,
-      [DeliveryOrderStatus.COMPLETED]: `Your order with ID ${order.id} has been successfully completed.\nتم إكمال طلبك رقم ${order.id} بنجاح.`,
-    };
-
-    const message = messages[newStatus];
+  public async notifyStatusChange(order: any, newStatus: DeliveryOrderStatus) {
+    console.log(newStatus, order);
+    const clientMessage = {
+      [DeliveryOrderStatus.CANCELED]: `طلبك رقم ${order.id} تم إلغاؤه.`,
+      [DeliveryOrderStatus.PICKUP]: `طلبك رقم ${order.id} قيد الالتقاط.`,
+      [DeliveryOrderStatus.ON_WAY]: `طلبك رقم ${order.id} في الطريق.`,
+      [DeliveryOrderStatus.COMPLETED]: `طلبك رقم ${order.id} تم توصيله بنجاح.`,
+    }[newStatus];
 
     try {
-      await this.wwebjsService.sendMessage(`${clientPhoneNumber}`, message);
+      await this.safeSendMessage(order.clientNumber, clientMessage);
     } catch (error) {
-      console.warn(`Failed to send WhatsApp message to client: ${error.message}`);
+      console.warn(`Failed to notify client: ${error.message}`);
     }
 
-    if (vendorPhoneNumber || newStatus === DeliveryOrderStatus.PICKUP) {
+    if (newStatus === DeliveryOrderStatus.PICKUP || newStatus === DeliveryOrderStatus.CANCELED) {
+      const vendorMessage = {
+        [DeliveryOrderStatus.CANCELED]: `الطلب رقم ${order.id} تم إلغاؤه.`,
+      }[newStatus];
+
       try {
-        switch (newStatus) {
-          case DeliveryOrderStatus.CANCELED:
-            await this.wwebjsService.sendMessage(
-              `${vendorPhoneNumber}`,
-              `Order ID ${order.id} has been canceled.`,
-            );
-            break;
-
-          case DeliveryOrderStatus.PICKUP:
-            const vendorItemsDescription = order.orderItems
-              .map((item: any) => `${item.quantity}x ${item.productTitle}`)
-              .join('\n');
-            await this.wwebjsService.sendMessage(
-              `${vendorPhoneNumber}`,
-              `Order ID ${order.id} is ready for pickup. Items:\n${vendorItemsDescription}.`,
-            );
-            break;
-
-          case DeliveryOrderStatus.ON_WAY:
-          case DeliveryOrderStatus.COMPLETED:
-            await this.wwebjsService.sendMessage(
-              `${vendorPhoneNumber}`,
-              `Order ID ${order.id} has been ${newStatus.toLowerCase()}.`,
-            );
-            break;
-
-          default:
-            console.warn(`Unhandled status: ${newStatus}`);
-            break;
+        if (order.vendor?.phoneNo) {
+          await this.safeSendMessage(order.vendor.phoneNo, vendorMessage);
         }
       } catch (error) {
-        console.error(`Failed to send WhatsApp message to vendor/driver: ${error.message}`);
-        throw new BadRequestException({
-          code: 'WHATSAPP_ERROR',
-          message: 'An error occurred while sending a WhatsApp notification to the vendor or driver.',
-        });
+        console.error(`Failed to notify vendor: ${error.message}`);
+        throw new BadRequestException('Failed to notify the vendor.');
       }
+    }
+  }
+
+  private async safeSendMessage(phoneNo: string, message: string): Promise<boolean> {
+    try {
+      await this.wwebjsService.sendMessage(phoneNo, message);
+      return true;
+    } catch (error) {
+      console.error(`Failed to send WhatsApp message to ${phoneNo}: ${error.message}`);
+      return false;
     }
   }
 
@@ -244,16 +252,10 @@ export class OrdersService {
     const order = await this.prisma.deliveryOrder.findUnique({ where: { id: orderId } });
 
     if (!order) {
-      throw new NotFoundException({
-        code: 'ORDER_NOT_FOUND',
-        message: 'Order not found. Please check the provided order ID.',
-      });
+      throw new NotFoundException('Order not found. Please check the provided order ID.');
     }
     if (order.status === DeliveryOrderStatus.COMPLETED) {
-      throw new BadRequestException({
-        code: 'CANNOT_DELETE_COMPLETED_ORDER',
-        message: 'Completed orders cannot be deleted.',
-      });
+      throw new BadRequestException('Completed orders cannot be deleted.');
     }
 
     return this.prisma.deliveryOrder.delete({ where: { id: orderId } });

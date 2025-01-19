@@ -7,11 +7,24 @@ import { ConfigService } from '@nestjs/config';
 export class StoreService {
   constructor(private readonly prisma: PrismaService,private readonly config: ConfigService) {}
 
-   async getStoresBySection(type: string, userCityId: number) {
+
+   async getStoresBySection(sectionSlug: string, userCityId: number) {
+    const section = await this.prisma.storeSection.findUnique({
+      where: { slug: sectionSlug },
+    })
+    if(!section) throw new NotFoundException('Section not found.');
     const stores = await this.prisma.store.findMany({
-      where: { cityId: userCityId },
+      where: { cityId: userCityId, sectionId: section.id },
+      select: {
+        id: true,
+        name: true,
+        image: true, // Assuming `imageUrl` is a column in the `store` table
+        banner:true,
+        description: true, // Assuming `description` is a column in the `store` table
+        uuid: true,
+      }
     });
-    return stores;
+    return {name:section.name,name_ar:section.name_ar,stores:stores};
   }
 
   

@@ -8,6 +8,11 @@ export class UpdateEventDto {
   @IsOptional()
   @IsString()
   title?: string;
+  
+  @ApiProperty({ type: String, required: false })
+  @IsOptional()
+  @IsString()
+  title_ar?: string;
 
   @ApiProperty({ type: String, required: false })
   @IsOptional()

@@ -21,7 +21,11 @@ export class ServicesOrdersService {
     private readonly whatsAppService: WwebjsService,
   ) {}
 
-  async getServiceOrders(query: QueryServiceOrdersDto, userRole: Role, userCountryId?: number) {
+  async getServiceOrders(
+    query: QueryServiceOrdersDto,
+    userRole: Role,
+    userCountryId?: number,
+  ) {
     this.rolePermissionService.enforcePermission(userRole, Permission.VIEW_SERVICE_ORDERS);
 
     const filters = buildFilters({
@@ -31,15 +35,12 @@ export class ServicesOrdersService {
       allowedFields: ['clientName', 'clientNumber', 'hotelName', 'roomNumber'],
     });
 
-    const allowedSortFields = ['createdAt', 'updatedAt', 'total'];
-    const result = await paginateAndSort(
+    return paginateAndSort(
       this.prisma.serviceOrder,
-      { where: filters },
+      { where: filters, include: { driver: true, vendor: true } },
       query,
-      allowedSortFields,
+      ['createdAt', 'updatedAt', 'total'],
     );
-
-    return result;
   }
 
   async findOne(orderId: number, userRole: Role) {
@@ -48,11 +49,15 @@ export class ServicesOrdersService {
     const serviceOrder = await this.prisma.serviceOrder.findUnique({
       where: { id: orderId },
       include: {
-        vendor: { select: { id: true, name: true } },
+        vendor: { select: { id: true, name: true, locationUrl: true, address: true, phoneNo: true } },
+        driver: true,
+        city: true,
       },
     });
 
-    if (!serviceOrder) throw new NotFoundException('Service order not found.');
+    if (!serviceOrder) {
+      throw new NotFoundException('Service order not found.');
+    }
 
     return serviceOrder;
   }
@@ -62,10 +67,16 @@ export class ServicesOrdersService {
 
     const serviceOrder = await this.prisma.serviceOrder.findUnique({
       where: { id: orderId },
-      include: { service: true, city: true, driver: true },
+      include: {
+        vendor: { select: { id: true, name: true, locationUrl: true, address: true, phoneNo: true } },
+        driver: true,
+        city: true,
+      },
     });
 
-    if (!serviceOrder) throw new NotFoundException('Service order not found.');
+    if (!serviceOrder) {
+      throw new NotFoundException('Service order not found.');
+    }
 
     if (dto.driverId && dto.driverId !== serviceOrder.driverId) {
       await this.assignDriver(serviceOrder, dto.driverId);
@@ -75,11 +86,12 @@ export class ServicesOrdersService {
 
     const updatedServiceOrder = await this.prisma.serviceOrder.update({
       where: { id: orderId },
-      data: { ...dto, driverId: undefined, status: undefined },
+      data: { ...dto },
+      include: { vendor: { select: { id: true, name: true, phoneNo: true } } },
     });
 
     if (isStatusChanged) {
-      await this.notifyStatusChange(updatedServiceOrder, dto.status);
+      await this.notifyStatusChange(updatedServiceOrder, dto.status as ServiceOrderStatus);
     }
 
     return updatedServiceOrder;
@@ -92,79 +104,96 @@ export class ServicesOrdersService {
     });
 
     if (!driver) {
-      throw new BadRequestException({
-        code: 'DRIVER_NOT_FOUND',
-        message: 'The specified driver does not exist.',
-      });
+      throw new BadRequestException('The specified driver does not exist.');
     }
 
     if (driver.cityId !== serviceOrder.city.id) {
-      throw new BadRequestException({
-        code: 'INVALID_DRIVER_CITY',
-        message: 'The driver must be located in the same city as the service order.',
-      });
+      throw new BadRequestException('The driver must be located in the same city as the order.');
     }
 
-    const updatedServiceOrder = await this.prisma.serviceOrder.update({
-      where: { id: serviceOrder.id },
-      data: { driverId, status: ServiceOrderStatus.PICKUP },
-      include: { service: true, city: true },
-    });
+    const driverMessage = `
+🔔 تم تعيينك لتوصيل طلب خدمة رقم: ${serviceOrder.id}.
+📍 يرجى استلام الأدوات من:
+- الفندق: ${serviceOrder.hotelName || 'غير متوفر'}
+- الغرفة: ${serviceOrder.roomNumber || 'غير متوفر'}
 
-    const itemsDescription = updatedServiceOrder.service.description;
+🚚 قم بتوصيل الأدوات إلى مقدم الخدمة:
+- اسم مقدم الخدمة: ${serviceOrder.vendor?.name || 'غير متوفر'}
+- العنوان: ${serviceOrder.vendor?.address || 'غير متوفر'}
+- الموقع الجغرافي: ${serviceOrder.vendor?.locationUrl || 'غير متوفر'}
+
+📄 رابط تحديث الطلب: ${process.env.FRONTEND_URL}/driver/service/${serviceOrder.driverAccessCode}
+    `;
 
     try {
-      await this.whatsAppService.sendMessage(
-        `${driver.phoneNo}@c.us`,
-        `تم تعيينك لتوصيل الطلب الخدمي برقم ${updatedServiceOrder.id}. الخدمة: ${itemsDescription}\nYou have been assigned to deliver service order ID ${updatedServiceOrder.id}. Service: ${itemsDescription}`,
-      );
+      const driverNotificationSuccess = await this.safeSendMessage(driver.phoneNo, driverMessage);
+      if (!driverNotificationSuccess) {
+        throw new Error('Failed to notify the driver.');
+      }
     } catch (error) {
-      console.error(`Failed to send WhatsApp message to driver: ${error.message}`);
-      throw new BadRequestException({
-        code: 'WHATSAPP_DRIVER_ERROR',
-        message: 'Failed to notify the driver via WhatsApp.',
-      });
+      console.error(error.message);
+      throw new BadRequestException(
+        'Failed to notify the driver. Status not updated.',
+      );
     }
 
-    await this.notifyStatusChange(updatedServiceOrder, ServiceOrderStatus.PICKUP);
+    return this.prisma.serviceOrder.update({
+      where: { id: serviceOrder.id },
+      data: { driverId, status: ServiceOrderStatus.PICKUP },
+      include: { vendor: { select: { id: true, name: true, phoneNo: true } } },
+    });
   }
 
-  private async notifyStatusChange(serviceOrder: any, newStatus: ServiceOrderStatus) {
-    const clientPhoneNumber = serviceOrder.client?.phoneNo;
-    const vendorPhoneNumber = serviceOrder.vendor?.phoneNo;
+  public async notifyStatusChange(serviceOrder: any, newStatus: ServiceOrderStatus) {
+    const allowedStatuses: ServiceOrderStatus[] = [
+      ServiceOrderStatus.PICKUP,
+      ServiceOrderStatus.CANCELED,
+    ];
 
-    const messages = {
-      [ServiceOrderStatus.CANCELED]: `تم إلغاء طلب الخدمة الخاص بك برقم ${serviceOrder.id}.\nYour service order with ID ${serviceOrder.id} has been canceled.`,
-      [ServiceOrderStatus.PICKUP]: `طلب الخدمة الخاص بك برقم ${serviceOrder.id} في الطريق.\nYour service order with ID ${serviceOrder.id} is on its way.`,
-      [ServiceOrderStatus.IN_PROGRESS]: `طلب الخدمة الخاص بك برقم ${serviceOrder.id} قيد التنفيذ.\nYour service order with ID ${serviceOrder.id} is now in progress.`,
-      [ServiceOrderStatus.COMPLETED]: `تم إكمال طلب الخدمة الخاص بك برقم ${serviceOrder.id} بنجاح.\nYour service order with ID ${serviceOrder.id} has been successfully completed.`,
-    };
-
-    const message = messages[newStatus];
-
-    // Notify client
-    if (clientPhoneNumber) {
-      try {
-        await this.whatsAppService.sendMessage(`${clientPhoneNumber}@c.us`, message);
-      } catch (error) {
-        console.warn(`Failed to send WhatsApp message to client: ${error.message}`);
-      }
+    if (!allowedStatuses.includes(newStatus)) {
+      throw new BadRequestException('Invalid status change.');
     }
 
-    // Notify vendor or driver - fail hard if it fails
-    if (vendorPhoneNumber && newStatus === ServiceOrderStatus.PICKUP) {
+    const clientMessage = {
+      [ServiceOrderStatus.CANCELED]: `
+❌ طلب الخدمة رقم ${serviceOrder.id} تم إلغاؤه.
+🔗 English: Service order #${serviceOrder.id} has been canceled.`,
+      [ServiceOrderStatus.PICKUP]: `
+📦 طلب الخدمة رقم ${serviceOrder.id} قيد الالتقاط.
+🔗 English: Service order #${serviceOrder.id} is being picked up.`,
+    }[newStatus];
+
+    try {
+      await this.safeSendMessage(serviceOrder.clientNumber, clientMessage);
+    } catch (error) {
+      console.warn(`Failed to notify client: ${error.message}`);
+    }
+
+    if (newStatus === ServiceOrderStatus.PICKUP || newStatus === ServiceOrderStatus.CANCELED) {
+      const vendorMessage = {
+        [ServiceOrderStatus.CANCELED]: `
+❌ طلب الخدمة رقم ${serviceOrder.id} تم إلغاؤه.
+🔗 English: Service order #${serviceOrder.id} has been canceled.`,
+      }[newStatus];
+
       try {
-        await this.whatsAppService.sendMessage(
-          `${vendorPhoneNumber}@c.us`,
-          `تم تعيين طلب الخدمة الخاص بك برقم ${serviceOrder.id}.\nYour service order with ID ${serviceOrder.id} is in progress.`,
-        );
+        if (serviceOrder.vendor?.phoneNo) {
+          await this.safeSendMessage(serviceOrder.vendor.phoneNo, vendorMessage);
+        }
       } catch (error) {
-        console.error(`Failed to send WhatsApp message to vendor: ${error.message}`);
-        throw new BadRequestException({
-          code: 'WHATSAPP_VENDOR_ERROR',
-          message: 'Failed to notify the vendor via WhatsApp.',
-        });
+        console.error(`Failed to notify vendor: ${error.message}`);
+        throw new BadRequestException('Failed to notify the vendor.');
       }
+    }
+  }
+
+  private async safeSendMessage(phoneNo: string, message: string): Promise<boolean> {
+    try {
+      await this.whatsAppService.sendMessage(phoneNo, message);
+      return true;
+    } catch (error) {
+      console.error(`Failed to send WhatsApp message to ${phoneNo}: ${error.message}`);
+      return false;
     }
   }
 
@@ -173,8 +202,12 @@ export class ServicesOrdersService {
 
     const serviceOrder = await this.prisma.serviceOrder.findUnique({ where: { id: orderId } });
 
-    if (!serviceOrder) throw new NotFoundException('Service order not found.');
+    if (!serviceOrder) {
+      throw new NotFoundException('Service order not found.');
+    }
 
     return this.prisma.serviceOrder.delete({ where: { id: orderId } });
   }
 }
+
+

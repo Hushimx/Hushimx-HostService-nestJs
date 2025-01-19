@@ -214,7 +214,7 @@ export class StoresService {
 
 
     return this.prisma.storeSection.create({
-      data: { name },
+      data: { name, name_ar: name,slug: name.toLowerCase().replace(' ', '-') },
       select: { id: true, name: true },
     });
   }

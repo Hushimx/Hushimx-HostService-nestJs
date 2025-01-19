@@ -165,6 +165,7 @@ model Service {
   updatedAt   DateTime  @updatedAt
 
   name        String
+  name_ar     String?
   slug        String @unique
   description String?
   serviceOrders ServiceOrder[]
@@ -378,11 +379,11 @@ model DeliveryOrder {
   hotelName  String
   
 
-  store       Store         @relation(fields: [storeId], references: [id])
+  store       Store?         @relation(fields: [storeId], references: [id])
   room       Room?         @relation(fields: [roomId], references: [id],onDelete: SetNull)
   city       City?         @relation(fields: [cityId], references: [id],onDelete: SetNull)
   client     Client?       @relation(fields: [clientId], references: [id],onDelete: SetNull)  
-  Vendor     Vendor?       @relation(fields: [vendorId], references: [id],onDelete: SetNull)  
+  vendor     Vendor?       @relation(fields: [vendorId], references: [id],onDelete: SetNull)  
   driver     Driver?       @relation(fields: [driverId], references: [id],onDelete: SetNull)
 
   
@@ -422,6 +423,8 @@ model StoreSection {
   id          Int       @id @default(autoincrement())
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
+  slug        String     @unique
+  
   name        String     
   name_ar     String?
   

@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { TestModule } from 'src/wwebjs/wwebjs.module';
+import { WwebjsModule } from 'src/wwebjs/wwebjs.module';
 import { OrdersController } from './orders.controller';
 import { OrdersService } from './orders.service';
 

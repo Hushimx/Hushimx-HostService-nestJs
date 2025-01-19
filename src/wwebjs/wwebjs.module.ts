@@ -7,4 +7,4 @@ import { WwebjsService } from './wwebjs.service';
   providers: [WwebjsService],
   exports: [WwebjsService],
 })
-export class TestModule {}
+export class WwebjsModule {}

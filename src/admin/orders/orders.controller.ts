@@ -16,7 +16,7 @@ import { GetUser } from 'src/decorator/get-user.decorator';import { ApiTags, Api
 import { AdminJwt } from 'src/admin/auth/guard';
 
 @ApiTags('Orders')
-@Controller('admin/orders')
+@Controller('admin/orders/delivery')
 @ApiBearerAuth()
 @UseGuards(AdminJwt)
 export class OrdersController {

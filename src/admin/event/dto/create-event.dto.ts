@@ -10,6 +10,11 @@ export class CreateEventDto {
   @ApiProperty({ type: String, required: false })
   @IsOptional()
   @IsString()
+  title_ar: string;
+
+  @ApiProperty({ type: String, required: false })
+  @IsOptional()
+  @IsString()
   description?: string;
 
   @ApiProperty({ type: String, required: false })
