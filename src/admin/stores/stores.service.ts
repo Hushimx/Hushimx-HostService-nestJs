@@ -37,6 +37,8 @@ export class StoresService {
     return this.prisma.store.create({
       data: {
         name: createStoreDto.name,
+        address: createStoreDto.address,
+        locationUrl: createStoreDto.locationUrl,
         description: createStoreDto.description,
         cityId: createStoreDto.cityId,
         sectionId: 1,
@@ -185,6 +187,8 @@ export class StoresService {
     return {
       id: true,
       name: true,
+      address:true,
+      locationUrl:true,
       description: true,
       image: true,
       banner: true,
@@ -200,6 +204,7 @@ export class StoresService {
       select: {
         id: true,
         name: true,
+        name_ar: true,
         createdAt: true,
         updatedAt: true,
       },

@@ -24,7 +24,9 @@ export class DriverService {
           driverAccessCode: driverCode,
           createdAt: { gte: new Date(now.getTime() - 3 * 60 * 60 * 1000) }, // Valid for 3 hours
         },
-        include: { vendor: true, client: true, driver: true },
+        select: {serviceName:true,currencySign:true, vendor: {
+          select: {id: true, name: true, phoneNo: true },
+        } },
       });
     } else if (type === 'DELIVERY_ORDER') {
       order = await this.prisma.deliveryOrder.findFirst({
@@ -32,7 +34,9 @@ export class DriverService {
           driverAccessCode: driverCode,
           createdAt: { gte: new Date(now.getTime() - 3 * 60 * 60 * 1000) }, // Valid for 3 hours
         },
-        include: { vendor: true, client: true, driver: true },
+        select: { storeName: true,currencySign:true,orderItems: true,vendor: {
+          select: { id: true, name: true, phoneNo: true },
+        } },
       });
     }
 
@@ -63,7 +67,9 @@ export class DriverService {
       updatedOrder = await this.prisma.serviceOrder.update({
         where: { driverAccessCode: driverCode },
         data: updateData,
-        include: { vendor: true, client: true, driver: true },
+        include: { vendor: {
+          select: { id: true, name: true, phoneNo: true },
+        }},
       });
 
       await this.serviceOrdersService.notifyStatusChange(updatedOrder, updateData.status as ServiceOrderStatus);
@@ -79,7 +85,9 @@ export class DriverService {
       updatedOrder = await this.prisma.deliveryOrder.update({
         where: { driverAccessCode: driverCode },
         data: updateData,
-        include: { vendor: true, client: true, driver: true },
+        include: { vendor: {
+          select: { id: true, name: true, phoneNo: true },
+        } },
       });
 
       await this.deliveryOrdersService.notifyStatusChange(updatedOrder, updateData.status as DeliveryOrderStatus);

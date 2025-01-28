@@ -1,4 +1,4 @@
-import { Controller, Patch, Query, Body, NotFoundException } from '@nestjs/common';
+import { Controller, Patch, Query, Body, NotFoundException, Get } from '@nestjs/common';
 import { DriverService } from './driver.service';
 import { DeliveryOrderStatus, ServiceOrderStatus } from '@prisma/client';
 
@@ -6,8 +6,12 @@ import { DeliveryOrderStatus, ServiceOrderStatus } from '@prisma/client';
 export class DriverController {
   constructor(private readonly driverService: DriverService) {}
 
+  @Get("d")
+  async test() {
+    return 11;
+  }
   // Endpoint to validate driver code and fetch the associated order
-  @Patch('validate')
+  @Get('validate')
   async validateDriverCode(
     @Query('type') type: 'SERVICE_ORDER' | 'DELIVERY_ORDER',
     @Query('code') code: string,
@@ -23,13 +27,12 @@ export class DriverController {
   @Patch('update')
   async updateOrder(
     @Query('type') type: 'SERVICE_ORDER' | 'DELIVERY_ORDER',
-    @Query('driverCode') driverCode: string,
+    @Query('code') driverCode: string,
     @Body() updateData: { status: DeliveryOrderStatus & ServiceOrderStatus; notes?: string },
   ) {
     if (!type || !driverCode) {
       throw new NotFoundException('Type and driver code are required.');
     }
-
     return this.driverService.updateOrder(type, driverCode, updateData);
   }
 }

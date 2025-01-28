@@ -131,8 +131,7 @@ async getAdmin(adminId: number, userRole: Role) {
     }
     // Hash the password if it's provided
     if (dto.password) {
-      dto.hash = await argon2.hash(dto.password);
-      delete dto.password
+      dto.password = await argon2.hash(dto.password);
     }
   
     // Build the update data by excluding undefined values

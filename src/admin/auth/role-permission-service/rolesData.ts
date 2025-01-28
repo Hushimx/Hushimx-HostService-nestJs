@@ -198,7 +198,8 @@ export enum Permission {
     Permission.EDIT_CITIES,
     Permission.DELETE_CITIES,
     //Overview
-    Permission.ACCESS_OVERVIEW
+    Permission.ACCESS_OVERVIEW,
+    Permission.VIEW_ORDERS
 
 
 

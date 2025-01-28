@@ -117,6 +117,8 @@ export class StoresService {
     return {
       id: true,
       name: true,
+      address:true,
+      locationUrl:true,
       description: true,
       image: true,
       banner: true,

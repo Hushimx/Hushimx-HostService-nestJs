@@ -8,12 +8,10 @@ export class AdminService {
   constructor(private readonly prisma: PrismaService, private readonly rolePermissionService: RolePermissionService,
  ) {}
 
- async getAdminOverview(userRole, userCountryId: number, countryId: number) {
-    // Validate countryId
-    if (!countryId || typeof countryId !== 'number') {
-      throw new Error('Invalid country ID');
+ async getAdminOverview(userRole, userCountryId: number, countryId?: number) {
+    if(!countryId){
+      countryId = userCountryId
     }
-
     // Enforce RBAC with permission validation
     try {
       this.rolePermissionService.enforceManageInCountry(

@@ -6,9 +6,11 @@ import { DeliveryOrdersModule } from './orders/delivery/orders.module';
 import { ServiceOrdersModule } from './orders/services/orders.module';
 import { VendorController } from './vendor.controller';
 import { ServicesModule } from './services/services.module';
+import { VendorService } from './vendor.service';
 
 @Module({
   imports: [StoresModule, VendorAuthModule,ProductModule,DeliveryOrdersModule,ServiceOrdersModule,ServicesModule],
-  controllers: [VendorController]
+  controllers: [VendorController],
+  providers: [VendorService]
 })
 export class VendorModule {}

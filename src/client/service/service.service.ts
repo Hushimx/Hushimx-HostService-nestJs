@@ -103,6 +103,7 @@ async placeServiceOrder(dto: PlaceServiceOrderDto, clientJwt) {
         clientId: clientJwt.clientId,
         serviceId: cityVendorService.service.id,
         vendorId: cityVendorService.vendor.id,
+        serviceCityId: cityVendorService.id,
         cityId: clientJwt.cityId,
         hotelId: clientJwt.hotelId ,
         roomId: clientJwt.roomId ,

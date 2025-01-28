@@ -1,6 +1,7 @@
 # Ignore Node modules
 node_modules/
 .wwebjs_auth/
+.wwebjs_cache/
 # Ignore build output directories
 dist/
 build/

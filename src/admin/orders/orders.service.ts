@@ -12,6 +12,7 @@ import { Role } from 'src/admin/auth/role-permission-service/rolesData';
 import { buildFilters } from 'src/utils/filters';
 import { DeliveryOrderStatus } from '@prisma/client';
 import { WwebjsService } from 'src/wwebjs/wwebjs.service';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class OrdersService {
@@ -19,6 +20,7 @@ export class OrdersService {
     private readonly prisma: PrismaService,
     private readonly rolePermissionService: RolePermissionService,
     private readonly wwebjsService: WwebjsService,
+    private config: ConfigService, 
   ) {}
 
   async getOrders(
@@ -69,7 +71,7 @@ export class OrdersService {
         orderItems: true,
         city: true,
         vendor: {
-          select: { id: true, name: true, locationUrl: true, address: true, phoneNo: true },
+          select: { id: true, name: true,  address: true, phoneNo: true },
         },
         driver: true,
       },
@@ -97,10 +99,10 @@ export class OrdersService {
         orderItems: true,
         city: true,
         vendor: {
-          select: { id: true, name: true, locationUrl: true, address: true, phoneNo: true },
+          select: { id: true, name: true, phoneNo: true },
         },
         store: {
-          select: { id: true, name: true },
+          select: { id: true, name: true,locationUrl:true, address: true },
         },
         driver: true,
       },
@@ -121,7 +123,7 @@ export class OrdersService {
       data: { ...dto,  },
       include: {
         vendor: {
-          select: { id: true, name: true, locationUrl: true, address: true, phoneNo: true },
+          select: { id: true, name: true, phoneNo: true },
         },
       }
     });
@@ -132,6 +134,7 @@ export class OrdersService {
 
     return updatedOrder;
   }
+
 
   private async assignDriver(order: any, driverId: number) {
     const driver = await this.prisma.driver.findUnique({
@@ -151,23 +154,25 @@ export class OrdersService {
       .map((item: any) => `${item.quantity}x ${item.productTitle}`)
       .join('\n');
 
-    const driverMessage = `
-تم تعيينك لتوصيل الطلب رقم ${order.id}.
-يرجى استلام الطلب من المتجر:
-المتجر: ${order.store?.name || ''}
-العنوان: ${order.vendor?.address || ''}
-اللوكيشن: ${order.vendor?.locationUrl || ''}
-
-ثم توصيله إلى الفندق:
-الفندق: ${order.hotelName || 'غير متوفر'}
-الغرفة: ${order.roomNumber || 'غير متوفر'}
-
-الطلبات:
-${itemsDescription}
-
-
-رابط تحديث الطلب : ${process.env.FRONTEND_URL}/driver/delivery/${order.driverAccessCode}
-    `;
+      const driverMessage = `
+      🚨 تم تعيينك لتوصيل الطلب رقم: ${order.id}.
+      
+      📦 يرجى استلام الطلب من المتجر:
+      - 🏬 المتجر: ${order.store?.name || 'غير متوفر'}
+      - 🗺️ العنوان: ${order.store?.address || 'غير متوفر'}
+      - 📍 اللوكيشن: ${order.store?.locationUrl || 'غير متوفر'}
+      
+      🏨 ثم توصيله إلى الفندق:
+      - الفندق: ${order.hotelName || 'غير متوفر'}
+      - الغرفة: ${order.roomNumber || 'غير متوفر'}
+      
+      📝 الطلبات:
+      ${itemsDescription}
+      
+      🔗 رابط تحديث الطلب:
+      ${this.config.get("FRONTEND_URL")}/driver/DELIVERY_ORDER/${order.driverAccessCode}
+      `;
+      
 
     const vendorMessage = `
 الطلب رقم ${order.id} قيد الالتقاط.

@@ -48,7 +48,10 @@ export class ServicesOrdersService {
       select: {
         id: true,
         clientNumber: true,
+        serviceName: true,
         hotelName: true,
+        roomNumber: true,
+        currencySign: true,
         status: true,
         notes: true,
         total: true,

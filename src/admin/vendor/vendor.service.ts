@@ -70,7 +70,6 @@ export class VendorService {
           phoneNo: createVendorDto.phoneNo,
           address: createVendorDto.address,
           cityId: createVendorDto.cityId,
-          locationUrl: createVendorDto.locationUrl || null,
         },
         select: {
           id: true,
@@ -78,7 +77,6 @@ export class VendorService {
           email: true,
           phoneNo: true,
           address: true,
-          locationUrl: true,
           city: {
             select: {
               id: true,
@@ -144,7 +142,6 @@ export class VendorService {
           email: true,
           phoneNo: true,
           address: true,
-          locationUrl: true,
           city: {
             select: {
               id: true,

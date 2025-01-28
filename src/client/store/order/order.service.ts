@@ -127,6 +127,7 @@ export class OrderService {
     return this.prisma.deliveryOrder.findMany({
       where: { clientId },
       select: {
+        id: true,
         storeName: true,
         createdAt: true,
         currencySign: true,
@@ -153,6 +154,7 @@ export class OrderService {
       date: order.createdAt,
       status: order.status,
       total: order.total,
+      currencySign: order.currencySign,
       paymentMethod: order.paymentMethod,
       client: {
         name: order.clientName,

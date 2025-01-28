@@ -57,6 +57,7 @@ export class OrdersService {
         clientName: true,
         clientNumber: true,
         status: true,
+        currencySign: true,
         paymentMethod: true,
         notes: true,
         total: true,

@@ -52,7 +52,9 @@ export class ListService {
   // Get a single service by slug
   async create(createServiceDto: CreateServiceDto, userRole: Role): Promise<any> {
     this.rolePermissionService.enforcePermission(userRole, Permission.CREATE_SERVICES);
-
+    if(createServiceDto.slug){
+      createServiceDto.slug = createServiceDto.slug.toLowerCase().replace(' ', '-');
+    }
     try {
       return await this.prisma.service.create({
         data: createServiceDto,

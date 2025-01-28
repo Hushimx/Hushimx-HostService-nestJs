@@ -15,22 +15,39 @@ export class ClientService {
     ) {}
 
 
-    async checkRoomAvailability(uuid: UUID): Promise<boolean> {
+    async checkRoomAvailability(uuid: UUID): Promise<{code: string}> {
       const room = await this.prisma.room.findUnique({
         where: {
           uuid: uuid,
+          
         },
+        include: {
+          hotel: {
+            select: {
+              city:{
+                select: {
+                  country: {
+                    select: {
+                      id: true,
+                      code: true
+  
+                    }
+                  }
+                }
+              }
+          }
+        }
+        }
       })
   
       if (!room) {
         throw new NotFoundException('Room not found');
       }
   
-      return true;
+      return {code: room.hotel.city.country.code};
     }
   
     async login(dto: ClientLoginDto): Promise<{ message: string; token: string }> {
-       console.log(dto)
       // Step 1: Validate Room by UUID
       const room = await this.prisma.room.findUnique({
         where: {

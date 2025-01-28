@@ -192,6 +192,7 @@ model CityServiceVendor {
 
   @@unique([serviceId, cityId])  // Ensures each service has only one vendor per city
   @@map("city_service_vendors")
+  ServiceOrder ServiceOrder[]
 }
 model ServiceOrder {
   id          Int       @id @default(autoincrement())
@@ -200,8 +201,9 @@ model ServiceOrder {
   uuid        String    @default(uuid()) @unique
   clientId      Int?
   serviceId   Int?
+  cityId     Int?
+  serviceCityId Int?   
   vendorId    Int?
-  cityId     Int?   
   hotelId    Int?      
   roomId     Int?          // Foreign key to the Room
   driverId   Int?
@@ -225,6 +227,7 @@ model ServiceOrder {
   vendor      Vendor?    @relation(fields: [vendorId], references: [id] ,onDelete: SetNull)
   client      Client?    @relation(fields: [clientId], references: [id],onDelete: SetNull)
   service     Service?   @relation(fields: [serviceId], references: [id],onDelete: SetNull)
+  serviceCity     CityServiceVendor?   @relation(fields: [serviceCityId], references: [id],onDelete: SetNull)
   hotel       Hotel?      @relation(fields: [hotelId], references: [id],onDelete: SetNull)
   room       Room?         @relation(fields: [roomId], references: [id],onDelete: SetNull)
   city       City?         @relation(fields: [cityId], references: [id],onDelete: SetNull)
@@ -252,10 +255,9 @@ model Vendor {
   
   name      String
   phoneNo   String
-  address   String
+  address   String?
   cityId    Int
 
-  locationUrl  String?
 
   city      City      @relation(fields: [cityId], references: [id], onDelete: Cascade)
 
@@ -288,11 +290,15 @@ model Store {
   uuid      String   @default(uuid()) @unique
 
   name      String  
+  address   String
 
+  locationUrl  String?
   image  String?
   banner String?
 
   description String?
+
+  
   sectionId      Int?
 
   vendorId  Int
