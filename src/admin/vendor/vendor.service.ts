@@ -48,7 +48,7 @@ export class VendorService {
         });
       }
     } catch (error) {
-      if (error.code === 'INVALID_WHATSAPP_NUMBER') {
+      if (error?.response?.code  === 'INVALID_WHATSAPP_NUMBER') {
         throw error;
       }
       throw new BadRequestException({
@@ -227,7 +227,7 @@ export class VendorService {
       
         }
       } catch (error) {
-        if (error.code === 'INVALID_WHATSAPP_NUMBER') {
+        if (error?.response?.code === 'INVALID_WHATSAPP_NUMBER') {
           throw error;
         }
         throw new BadRequestException({

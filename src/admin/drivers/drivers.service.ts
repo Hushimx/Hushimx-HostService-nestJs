@@ -50,7 +50,7 @@ export class DriversService {
     
       }
     } catch (error) {
-      if (error instanceof BadRequestException) {
+      if (error?.response?.code  === 'INVALID_WHATSAPP_NUMBER') {
         throw error;
       }
       throw new BadRequestException({
@@ -203,7 +203,7 @@ export class DriversService {
     
       }
     } catch (error) {
-      if (error instanceof BadRequestException) {
+      if (error?.response?.code  === 'INVALID_WHATSAPP_NUMBER') {
         throw error;
       }
       throw new BadRequestException({
