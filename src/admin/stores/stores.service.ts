@@ -41,8 +41,8 @@ export class StoresService {
         locationUrl: createStoreDto.locationUrl,
         description: createStoreDto.description,
         cityId: createStoreDto.cityId,
-        sectionId: 1,
-        vendorId: 1,
+        sectionId: createStoreDto.sectionId,
+        vendorId: createStoreDto.vendorId,
         image,
         banner
 
