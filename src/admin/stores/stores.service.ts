@@ -110,7 +110,11 @@ export class StoresService {
 
     this.rolePermissionService.enforcePermission(userRole, Permission.DELETE_STORES);
     this.rolePermissionService.enforceManageInCountry(userRole, Permission.DELETE_STORES, userCountryId, store.city.countryId);
-
+    
+    const deleteStore = await this.prisma.store.delete({
+      where: { id: storeId },
+      select: { id: true, name: true },
+    });
     if (store.image) {
       try {
         this.photoStorageService.deletePhoto(store.image);
@@ -125,10 +129,7 @@ export class StoresService {
         console.error('Error deleting old banner:', error);
       }
     }
-    return this.prisma.store.delete({
-      where: { id: storeId },
-      select: { id: true, name: true },
-    });
+    return deleteStore;
   }
 
   /**

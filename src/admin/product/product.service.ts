@@ -95,16 +95,16 @@ export class ProductService {
     // Enforce permissions
     this.rolePermissionService.enforcePermission(userRole, Permission.DELETE_PRODUCTS);
     this.rolePermissionService.enforceManageInCountry(userRole, Permission.DELETE_PRODUCTS, userCountryId, store.city.countryId);
-
+    const deletedProduct = await this.prisma.product.delete({
+      where: { id: productId },
+      select: { id: true, name: true },
+    });
     // Delete photo and product
     if (product.image) {
       this.photoStorageService.deletePhoto(product.image);
     }
 
-    return this.prisma.product.delete({
-      where: { id: productId },
-      select: { id: true, name: true },
-    });
+    return deletedProduct;
   }
 
   /**
