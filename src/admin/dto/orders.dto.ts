@@ -9,6 +9,11 @@ export class QueryOrdersDto extends PaginationAndSortingDto {
   @IsOptional()
   @IsInt()
   id?: number;
+  
+  @ApiProperty({ description: 'Filter by the status', example: 'ON_WAY', required: false })
+  @IsOptional()
+  @IsEnum(DeliveryOrderStatus)
+  status?: string;
 
   @ApiProperty({ description: 'Filter by country ID', required: false, example: 1 })
   @IsOptional()

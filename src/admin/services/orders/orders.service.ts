@@ -37,7 +37,7 @@ export class ServicesOrdersService {
       dto: query,
       allowedFields: ['clientName', 'clientNumber', 'hotelName', 'roomNumber'],
     });
-
+    if(query.status) filters.status = query.status
     return paginateAndSort(
       this.prisma.serviceOrder,
       { where: filters, include: { driver: true, vendor: {
@@ -179,7 +179,7 @@ export class ServicesOrdersService {
       
       COMPLETED: `
       ✅ طلب الخدمة رقم ${serviceOrder.id} تم اكتماله بنجاح.
-      🔗 English: Service order #${serviceOrder.id} has been successfully completed.`
+      🔗 Service order #${serviceOrder.id} has been successfully completed.`
     }[newStatus];
     
     try {

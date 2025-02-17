@@ -29,6 +29,7 @@ export class ServiceService {
   
     return {
       serviceName: serviceVendor.service.name,
+      serviceNameAr: serviceVendor.service.name_ar,
       description: serviceVendor.service.description,
       vendor: {
         description: serviceVendor.description,

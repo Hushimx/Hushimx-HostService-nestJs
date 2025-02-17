@@ -372,9 +372,9 @@ model DeliveryOrder {
   hotelId    Int?
   vendorId   Int?
   driverId   Int?
+  storeId Int?
 
 
-  storeId Int
   storeName String
   
   currencySign String
@@ -420,7 +420,7 @@ model DeliveryOrderItem {
   quantity   Int          // Quantity of this product in the order
   price      Float        // Price at the time of ordering (for record-keeping)
 
-  order      DeliveryOrder        @relation(fields: [orderId], references: [id])
+  order      DeliveryOrder        @relation(fields: [orderId], references: [id],onDelete: Cascade)
   product    Product      @relation(fields: [productId], references: [id])
 
   @@map("delivery_order_items")

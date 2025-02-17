@@ -26,13 +26,13 @@ export class ServicesOrdersService {
     if(query.serviceId) filters.serviceId = query.serviceId;
     if(query.clientNumber) filters.clientNumber = {contains: query.clientNumber};
     if(query.status) filters.status = query.status;
-
+    filters.vendorId = user.id;
 
     // Pagination and sorting
     const allowedSortFields = ['createdAt', 'updatedAt', 'total'];
     const result = await paginateAndSort(
       this.prisma.serviceOrder,
-      { where: filters },
+      { where: filters,select: { id: true, clientNumber: true, serviceName: true, currencySign: true, status: true} },
       query,
       allowedSortFields,
     );

@@ -18,7 +18,7 @@ export class QueryOrdersDto extends PaginationAndSortingDto {
     storeId?: number;
 
   
-    @ApiProperty({ description: 'Filter by the status', example: '1234567890', required: false })
+    @ApiProperty({ description: 'Filter by the status', example: 'ON_WAY', required: false })
     @IsOptional()
     @IsEnum(DeliveryOrderStatus)
     status?: string;

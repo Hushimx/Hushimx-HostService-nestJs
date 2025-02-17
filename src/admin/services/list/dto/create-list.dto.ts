@@ -6,7 +6,12 @@ export class CreateServiceDto {
     @IsNotEmpty()
     @IsString()
     name: string;
-  
+    
+    @ApiProperty({ description: 'Name of the service in arabic', example: 'غسيل الغرف' })
+    @IsNotEmpty()
+    @IsString()
+    name_ar: string;
+
     @ApiProperty({ description: 'Unique slug for the service', example: 'cleaning' })
     @IsNotEmpty()
     @IsString()

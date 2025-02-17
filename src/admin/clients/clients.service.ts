@@ -59,12 +59,17 @@ export class ClientsService {
       filters.name = { contains: query.name, mode: 'insensitive' };
     }
 
-    const allowedSortFields = ['name', 'createdAt', 'updatedAt'];
+    if (query.phoneNo) {
+      filters.phoneNo = { contains: query.phoneNo, mode: 'insensitive' };
+    }
+
+    const allowedSortFields = ['name',"phoneNo", 'createdAt', 'updatedAt'];
 
     return paginateAndSort(
       this.prisma.client,
       {
         where: filters,
+        include: { country: { select : { name: true }} },
       },
       {
         page: query.page,

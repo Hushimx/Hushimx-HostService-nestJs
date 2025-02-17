@@ -24,7 +24,8 @@ export class OrdersService {
     const filters: any = {};
     if(dto.storeId) filters.storeId = dto.storeId;
     if(dto.status) filters.status = dto.status;
-    
+    if(dto.clientNumber) filters.clientNumber = {contains: dto.clientNumber};
+    console.log(filters);
 
     return paginateAndSort(
       this.prisma.deliveryOrder,
@@ -33,6 +34,10 @@ export class OrdersService {
         createdAt:true,
         clientName: true,
         clientNumber: true,
+        storeName: true,
+        hotelName: true,
+        roomNumber: true,
+
         status: true,
         notes: true,
         total: true,

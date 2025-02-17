@@ -1,5 +1,5 @@
-import {  IsOptional, IsString,  } from 'class-validator';
-import {  ApiPropertyOptional } from '@nestjs/swagger';
+import {  IsOptional, IsString,IsNotEmpty  } from 'class-validator';
+import {  ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpdateServiceDto {
     @ApiPropertyOptional({ description: 'Updated name of the service', example: 'Updated Cleaning' })
@@ -7,6 +7,11 @@ export class UpdateServiceDto {
     @IsString()
     name?: string;
   
+    @ApiProperty({ description: 'Name of the service in arabic', example: 'غسيل الغرف' })
+    @IsNotEmpty()
+    @IsString()
+    name_ar: string;
+
     @ApiPropertyOptional({ description: 'Updated description of the service', example: 'Updated description' })
     @IsOptional()
     @IsString()

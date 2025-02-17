@@ -193,23 +193,25 @@ export class DriversService {
       driver.city.countryId,
     );
 
-    try {
-      const isValid = await this.wwebjsService.checkForNumber(updateDriverDto.phoneNo);
-      if (!isValid) {
+    if(updateDriverDto.phoneNo){  
+      try {
+        const isValid = await this.wwebjsService.checkForNumber(updateDriverDto.phoneNo);
+        if (!isValid) {
+          throw new BadRequestException({
+            code: "INVALID_WHATSAPP_NUMBER",
+            message: 'Phone number is not valid',
+          });
+      
+        }
+      } catch (error) {
+        if (error?.response?.code  === 'INVALID_WHATSAPP_NUMBER') {
+          throw error;
+        }
         throw new BadRequestException({
-          code: "INVALID_WHATSAPP_NUMBER",
-          message: 'Phone number is not valid',
+          code: "WHATSAPP_ERROR",
+          message: 'WhatsApp bots doesn\'t work',
         });
-    
       }
-    } catch (error) {
-      if (error?.response?.code  === 'INVALID_WHATSAPP_NUMBER') {
-        throw error;
-      }
-      throw new BadRequestException({
-        code: "WHATSAPP_ERROR",
-        message: 'WhatsApp bots doesn\'t work',
-      });
     }
 
 

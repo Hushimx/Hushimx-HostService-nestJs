@@ -11,10 +11,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { OrdersService } from './orders.service';
-import { QueryOrdersDto, EditOrderDto } from 'src/admin/dto/orders.dto';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { GetUser } from 'src/decorator/get-user.decorator';
 import { VendorJwt } from 'src/vendor/vendor-auth/guard/vendorJwt.guard';
+import { QueryOrdersDto } from './dto/delivery-orders.dto';
 
 @ApiTags('Orders')
 @Controller('vendor/orders/delivery')
@@ -29,6 +29,7 @@ export class OrdersController {
     @Query(new ValidationPipe({ transform: true, whitelist: true })) query: QueryOrdersDto,
     @GetUser() user: any,
   ) {
+    console.log(query,"query")
     return this.ordersService.getOrders(query, user);
   }
   @Get(":id")

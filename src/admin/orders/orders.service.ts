@@ -44,10 +44,10 @@ export class OrdersService {
         'clientNumber',
         'phoneNo',
         'storeSection',
-        'status',
         'notes',
       ],
     });
+    if(dto.status) filters.status = dto.status
 
     return paginateAndSort(
       this.prisma.deliveryOrder,
@@ -216,7 +216,7 @@ ${itemsDescription}
       [DeliveryOrderStatus.CANCELED]: `طلبك رقم ${order.id} تم إلغاؤه.`,
       [DeliveryOrderStatus.PICKUP]: `طلبك رقم ${order.id} قيد الالتقاط.`,
       [DeliveryOrderStatus.ON_WAY]: `طلبك رقم ${order.id} في الطريق.`,
-      [DeliveryOrderStatus.COMPLETED]: `طلبك رقم ${order.id} تم توصيله بنجاح.`,
+      [DeliveryOrderStatus.COMPLETED]: `✅ طلبك رقم ${order.id} تم توصيله بنجاح.`,
     }[newStatus];
 
     try {

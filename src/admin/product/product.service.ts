@@ -72,7 +72,7 @@ export class ProductService {
       if (photoPath) this.photoStorageService.deletePhoto(photoPath);
       photoPath = newPhotoPath;
     }
-
+    
     // Update product
     return this.prisma.product.update({
       where: { id: productId },
@@ -121,21 +121,21 @@ export class ProductService {
   
     // Validate store and fetch related countryId
     const store = await this.getStoreWithCountry(storeId);
-  
+    
     // Enforce country-level access control
     this.rolePermissionService.enforceManageInCountry(userRole, Permission.VIEW_PRODUCTS, userCountryId, store.city.countryId);
   
-    // Build filters dynamically based on allowed fields and query
-    const filters = buildFilters({
-      userRole,
-      userCountryId,
-      dto: query,
-      allowedFields: ['name', 'price', 'categoryId'],
-    });
-  
+    // Build filters
+    const filters : any = {};
     // Include the storeId in filters
     filters.storeId = store.id;
-  
+    if(query.categoryId){
+      filters.categoryId = query.categoryId;
+    }
+    if(query.name){
+      filters.name = { contains: query.name, mode: 'insensitive' };
+    }
+    
     // Fetch paginated and sorted products
     return paginateAndSort(
       this.prisma.product,
