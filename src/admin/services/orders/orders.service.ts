@@ -129,21 +129,21 @@ export class ServicesOrdersService {
   
     // Construct notification message
     const driverMessage = `
-    🔔 تم تعيينك لتوصيل طلب خدمة رقم: ${serviceOrder.id}
+🔔 تم تعيينك لتوصيل طلب خدمة رقم: ${serviceOrder.id}
     
-    نوع الخدمه: ${serviceOrder.serviceName}
+نوع الخدمه: ${serviceOrder.serviceName}
     
-    📍 يرجى استلام الأصل من:
-    - الفندق: ${serviceOrder.hotelName || 'غير متوفر'}
-    - الغرفة: ${serviceOrder.roomNumber || 'غير متوفر'}
+📍 يرجى استلام الأصل من:
+- الفندق: ${serviceOrder.hotelName || 'غير متوفر'}
+- الغرفة: ${serviceOrder.roomNumber || 'غير متوفر'}
     
-    🚚 قم بتوصيل الأصل إلى مقدم الخدمة:
-    - اسم مقدم الخدمة: ${serviceOrder.vendor?.name || 'غير متوفر'}
-    - العنوان: ${serviceOrder.serviceCity?.address || 'غير متوفر'}
-    - الموقع الجغرافي: ${serviceOrder.serviceCity?.locationUrl || 'غير متوفر'}
+🚚 قم بتوصيل الأصل إلى مقدم الخدمة:
+- اسم مقدم الخدمة: ${serviceOrder.vendor?.name || 'غير متوفر'}
+- العنوان: ${serviceOrder.serviceCity?.address || 'غير متوفر'}
+- الموقع الجغرافي: ${serviceOrder.serviceCity?.locationUrl || 'غير متوفر'}
     
-    📄 رابط تحديث الطلب:
-    ${this.config.get("FRONTEND_URL")}/driver/SERVICE_ORDER/${serviceOrder.driverAccessCode}
+📄 رابط تحديث الطلب:
+${this.config.get("FRONTEND_URL")}/driver/SERVICE_ORDER/${serviceOrder.driverAccessCode}
     `;
   
     try {
@@ -170,16 +170,16 @@ export class ServicesOrdersService {
     // Messages for clients
     const clientMessage = {
       CANCELED: `
-      ❌ طلب الخدمة رقم ${serviceOrder.id} تم إلغاؤه.
-      🔗 English: Service order #${serviceOrder.id} has been canceled.`,
+❌ طلب الخدمة رقم ${serviceOrder.id} تم إلغاؤه.
+🔗 English: Service order #${serviceOrder.id} has been canceled.`,
       
       PICKUP: `
-      📦 طلب الخدمة رقم ${serviceOrder.id} قيد التوصيل.
-      🔗 English: Service order #${serviceOrder.id} is being picked up.`,
+📦 طلب الخدمة رقم ${serviceOrder.id} قيد التوصيل.
+🔗 English: Service order #${serviceOrder.id} is being picked up.`,
       
       COMPLETED: `
-      ✅ طلب الخدمة رقم ${serviceOrder.id} تم اكتماله بنجاح.
-      🔗 Service order #${serviceOrder.id} has been successfully completed.`
+✅ طلب الخدمة رقم ${serviceOrder.id} تم اكتماله بنجاح.
+🔗 Service order #${serviceOrder.id} has been successfully completed.`
     }[newStatus];
     
     try {

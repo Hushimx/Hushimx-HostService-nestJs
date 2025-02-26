@@ -155,22 +155,22 @@ export class OrdersService {
       .join('\n');
 
       const driverMessage = `
-      🚨 تم تعيينك لتوصيل الطلب رقم: ${order.id}.
+🚨 تم تعيينك لتوصيل الطلب رقم: ${order.id}.
       
-      📦 يرجى استلام الطلب من المتجر:
-      - 🏬 المتجر: ${order.store?.name || 'غير متوفر'}
-      - 🗺️ العنوان: ${order.store?.address || 'غير متوفر'}
-      - 📍 اللوكيشن: ${order.store?.locationUrl || 'غير متوفر'}
+📦 يرجى استلام الطلب من المتجر:
+- 🏬 المتجر: ${order.store?.name || 'غير متوفر'}
+- 🗺️ العنوان: ${order.store?.address || 'غير متوفر'}
+- 📍 اللوكيشن: ${order.store?.locationUrl || 'غير متوفر'}
       
-      🏨 ثم توصيله إلى الفندق:
-      - الفندق: ${order.hotelName || 'غير متوفر'}
-      - الغرفة: ${order.roomNumber || 'غير متوفر'}
+🏨 ثم توصيله إلى الفندق:
+- الفندق: ${order.hotelName || 'غير متوفر'}
+- الغرفة: ${order.roomNumber || 'غير متوفر'}
+  
+📝 الطلبات:
+${itemsDescription}
       
-      📝 الطلبات:
-      ${itemsDescription}
-      
-      🔗 رابط تحديث الطلب:
-      ${this.config.get("FRONTEND_URL")}/driver/DELIVERY_ORDER/${order.driverAccessCode}
+🔗 رابط تحديث الطلب:
+${this.config.get("FRONTEND_URL")}/driver/DELIVERY_ORDER/${order.driverAccessCode}
       `;
       
 
