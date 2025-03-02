@@ -24,7 +24,7 @@ export class DriverService {
           driverAccessCode: driverCode,
           createdAt: { gte: new Date(now.getTime() - 3 * 60 * 60 * 1000) }, // Valid for 3 hours
         },
-        select: {serviceName:true,currencySign:true, vendor: {
+        select: {serviceName:true,currencySign:true,status:true, vendor: {
           select: {id: true, name: true, phoneNo: true },
         } },
       });
@@ -34,7 +34,7 @@ export class DriverService {
           driverAccessCode: driverCode,
           createdAt: { gte: new Date(now.getTime() - 3 * 60 * 60 * 1000) }, // Valid for 3 hours
         },
-        select: { storeName: true,currencySign:true,orderItems: true,vendor: {
+        select: { storeName: true,status:true,currencySign:true,orderItems: true,vendor: {
           select: { id: true, name: true, phoneNo: true },
         } },
       });
