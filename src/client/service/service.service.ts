@@ -98,6 +98,7 @@ async placeServiceOrder(dto: PlaceServiceOrderDto, clientJwt) {
     const clientNumber = client.phoneNo;
     const roomNumber = clientJwt.roomNumber;
     const hotelName = clientJwt.hotelName ;
+    const clientCurrency = clientJwt.currencySign ;
     // Create the service order
     const serviceOrder = await prisma.serviceOrder.create({
       data: {
@@ -111,11 +112,11 @@ async placeServiceOrder(dto: PlaceServiceOrderDto, clientJwt) {
         driverId: null, // Optional, set if driver info is available
         serviceName,
         vendorName,
-        clientName: "no name",
+        clientName: clientName || "no name",
         clientNumber,
         roomNumber,
         hotelName,
-        currencySign: 'SAR',
+        currencySign: clientCurrency,
         notes: dto.notes,
         status: 'PENDING',
         total: 0,

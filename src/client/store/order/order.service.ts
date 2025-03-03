@@ -98,7 +98,7 @@ export class OrderService {
             currencySign: user.currencySign,
             clientName: "clientName",
             clientNumber: client.phoneNo ,
-            roomNumber: "11" ,
+            roomNumber: user.roomNumber,
             hotelName: user.hotelName,
             status: orderStatus,
             total: totalAmount,
